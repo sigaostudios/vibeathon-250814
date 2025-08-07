@@ -1,22 +1,21 @@
 <main id="app">
     <app-phaser-game></app-phaser-game>
     <div class="controls-panel">
-        <h3>Game Controls</h3>
-        <div>
-            <button class="btn" (click)="changeScene()">Change Scene</button>
+        <div class="controls-header">
+            <h3>Game Controls</h3>
+            <div class="status-pill" [class.on]="statusLabel.includes('On')" [class.off]="statusLabel.includes('Off')">
+                {{ statusLabel }}
+            </div>
         </div>
-        <div>
+        <div class="controls-grid">
+            <button class="btn" (click)="changeScene()">Change Scene</button>
             <button class="btn" [disabled]="!canToggleMovement" (click)="toggleMovement()">Toggle Movement</button>
+            <button class="btn" [disabled]="!canAddSprite" (click)="addSprite()">Add New Sprite</button>
+            <a routerLink="/config" class="btn btn-secondary">Game Configuration</a>
         </div>
         <div class="sprite-position">
-            Sprite Position:
+            <div class="label">Sprite Position</div>
             <pre>{{ spritePosition | json }}</pre>
-        </div>
-        <div>
-            <button class="btn" [disabled]="!canAddSprite" (click)="addSprite()">Add New Sprite</button>
-        </div>
-        <div class="mt-2">
-            <a routerLink="/config" class="btn btn-secondary">Game Configuration</a>
         </div>
     </div>
 </main>

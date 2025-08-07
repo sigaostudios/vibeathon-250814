@@ -20,14 +20,50 @@
     backdrop-filter: blur(10px);
 }
 
-.controls-panel h3 {
+.controls-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+.controls-header h3 {
     color: #0cc9bd;
     font-size: 1.2rem;
 }
 
+.status-pill {
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    line-height: 1;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.05);
+    white-space: nowrap;
+}
+
+.status-pill.on {
+    border-color: rgba(12, 201, 189, 0.5);
+    background: rgba(12, 201, 189, 0.15);
+    color: #0fe3d6;
+}
+
+.status-pill.off {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
 .sprite-position {
-    margin: 10px 0 0 0;
+    margin: 1rem 0 0 0;
     font-size: 0.8em;
     color: rgba(255, 255, 255, 0.7);
 }
@@ -45,7 +81,7 @@
         min-width: 150px;
     }
     
-    .controls-panel h3 {
+    .controls-header h3 {
         font-size: 1rem;
     }
 }
