@@ -1,186 +1,107 @@
 ![Vibeathon Mascot](vibeathon.png)
 
-# Sigao Vibeathon 2024 — **Team Mascot Challenge**
+# Sigao Vibeathon 2024 — Team Mascot Starter
 
-## 🎮 Getting Started with the Test Harness
+This is a Phaser 3 + Angular 19 starter wired for fast iteration with a small control panel, a config route, and an EventBus to bridge Angular and Phaser. It’s intentionally simple so you can focus on mascot personality, interactivity, and external data.
 
-This repository includes a **Phaser 3 + Angular 19** game template to help you get started quickly!
+## Quick Start
+- Prereqs: Node 18+, npm, Git
+- Install: `npm install`
+- Dev (with lightweight telemetry ping): `npm run dev`
+- Dev (offline / no ping): `npm run dev-nolog`
+- Build (prod + base href='./'): `npm run build` or `npm run build-nolog`
+- Open: Angular dev server runs at `http://localhost:4200`
 
-### Prerequisites
-- Node.js 18+ and npm installed
-- Git for version control
+Notes
+- The `dev` and `build` scripts call `log.js` which sends a tiny GET to record usage. Prefer `*-nolog` if offline or avoiding network calls.
+- Production output path: `dist/template-angular/` (configured in `angular.json`).
 
-### Quick Start
-```bash
-# Clone your team's branch
-git clone -b <your-team-branch> https://github.com/sigaostudios/vibeathon-250814.git
-cd vibeathon-250814
+## What You Get Out-of-the-Box
+- Scene flow (Boot → Preloader → MainMenu → Game → GameOver)
+- Overlay controls in Angular to drive scenes and movement
+- Config route with persistent settings (via `StorageService`)
+- EventBus for Angular ↔ Phaser messaging
 
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
-# Opens at http://localhost:8080
-
-# Or use Angular's dev server
-ng serve
-# Opens at http://localhost:4200
-```
-
-### Build for Production
-```bash
-# Build with analytics
-npm run build
-
-# Build without analytics
-npm run build-nolog
-
-# Output will be in dist/browser/
-```
-
-### Project Structure
+## Project Structure
 ```
 src/
-├── app/                    # Angular components
-│   ├── app.component.ts    # Main UI with EventBus integration
-│   └── phaser-game.component.ts  # Phaser game container
-├── game/                   # Phaser game code
-│   ├── scenes/            # Game scenes (Boot, MainMenu, Game, etc.)
-│   ├── EventBus.ts        # Angular-Phaser communication bridge
-│   └── main.ts            # Phaser configuration
-└── assets/                # Images, sounds, sprites
+  app/
+    app.component.*          # Angular shell
+    app.routes.ts            # Routes for Home and Configuration
+    home/                    # Overlay controls (status + buttons)
+    configuration/           # Config UI (persists to StorageService)
+    phaser-game.component.ts # Hosts the Phaser canvas
+    storage.service.ts       # Wrapper around unstorage localStorage driver
+  game/
+    main.ts                  # Phaser config and scene list
+    EventBus.ts              # EventEmitter bridge
+    scenes/                  # Boot, Preloader, MainMenu, Game, GameOver
+public/
+  assets/                    # Static assets copied to build
 ```
 
-### Test Harness Features
-- **EventBus**: Bidirectional communication between Angular UI and Phaser game
-- **Scene Management**: Pre-configured scene flow with transitions
-- **UI Controls**: Angular components can control game state
-- **Asset Pipeline**: Automatic asset loading and management
+## Controls Overlay (Home)
+- Status pill: shows current scene and whether movement is On/Off
+- Buttons
+  - Change Scene: calls the active scene’s `changeScene()`
+  - Toggle Movement: works in MainMenu (logo tween) and Game (sprite motion)
+  - Add New Sprite: enabled in Game, spawns a random animated sprite
 
----
+The overlay subscribes to `EventBus` events to stay in sync with the active scene.
 
-## 📋 **Project Brief**
+## Configuration Route (/config)
+- Game Title: edit the title and click Save.
+- Persistence: stored using `StorageService` (backed by `unstorage` localStorage driver under the `app:` namespace).
+- Game scene consumption: on app load and on save, Angular emits `config-loaded` / `config-saved`. The Game scene listens and updates its title live.
 
-### Overview
+Tip: Use this route to add more mascot parameters (mood thresholds, animation speed, etc.). Emit Events when they change, and apply them in scenes.
 
-You and your team will **design, build, and deploy an original, interactive digital mascot**—a browser-based character with real personality and a live connection to something in the outside world. The mascot should be more than an animation: it must react, display emotion, respond to external events or data, and be fun to interact with.
+## EventBus API (current wiring)
+- `current-scene-ready: (scene: Phaser.Scene)` — emitted by active scene when ready
+- `add-sprite` — Angular requests Game to create a random sprite
+- `config-loaded: (config)` — emitted after Angular loads saved config
+- `config-saved: (config)` — emitted after user saves config
+- Additional placeholders already present in the config component if helpful:
+  - `toggle-sound: (enabled: boolean)`
+  - `music-volume-changed: (0..1)`
+  - `sfx-volume-changed: (0..1)`
+  - `difficulty-changed: ('easy'|'medium'|'hard')`
 
-**At least 80% of all code must be AI-generated and guided by your team.** (You can use tools like ChatGPT, Claude Code, Opencode, Copilot, etc.)
+## Assets
+- Place files in `public/assets/` — they’re copied as-is to the build.
+- Scenes load with relative paths like `this.load.setPath('assets')` then `this.load.image('logo','logo.png')`.
+- Keep sizes small. The Boot/Preloader scenes are minimal by design to avoid blocking loads.
 
-All work will be checked in to your team's branch on https://github.com/sigaostudios/vibeathon-250814.
+## External Data (your mascot’s “heartbeat”)
+- You’re expected to connect the mascot to something real (API, webhook, workspace events, etc.).
+- Do not commit secrets. Prefer public APIs, proxy via a lightweight server if needed, or store non-secret toggles via the config route.
+- Provide a demo/test mode in the UI so judges can simulate signals without relying on live events.
 
----
+## Development Tips
+- Start simple: wire one data source and one visible reaction.
+- Use the EventBus to isolate Angular UI from Phaser logic.
+- Make states obvious: show status text or simple color/mood changes.
+- Keep asset sizes and animation counts reasonable — faster iteration wins.
 
-## ✅ Core Requirements
+## Scripts
+- `npm run dev` — `log.js` + Angular dev server
+- `npm run dev-nolog` — Angular dev server only
+- `npm run build` — production build with hashing, base href `./`
+- `npm run build-nolog` — production build without analytics ping
 
-### 1. **AI-Created and Guided**
-- At least **80% of all project code** (JS/TS, assets, logic, config) must be written/generated by an AI tool, with your team acting as guide/editor
-- You may use **Angular, Phaser, or any other frontend/browser-based tech** you want
-- **All prompts, AI conversations, and code generation steps must be documented** in your repo's README or in a `/prompts` folder for auditability
+## Testing
+- The project doesn’t ship with spec files; `ng test` will report no inputs by default.
+- If you add specs, run `npx ng test` (Karma + Jasmine).
 
-### 2. **Mascot Personality**
-- Your mascot must have a **defined personality**:
-  - Give it a name, traits, and a unique backstory or attitude
-  - It should display **different emotions or moods** in response to outside world events or user actions
-  - It must have at least 3 distinct emotional states/expressions
+## Contributing During Vibeathon
+- Branch per team: do work in your team branch and open PRs if helpful.
+- Keep commits small and descriptive (e.g., "Add scene transition", "Hook up Slack webhook").
+- Document AI usage (prompts, iterations). A `/prompts` folder or section in README works.
 
-### 3. **Connects to the Outside World**
-- The mascot must be **driven by a real external data source**
-- Example sources:
-  - Codebase metrics (pull requests, issues, deploys, commit messages)
-  - Weather API or real-time news
-  - Team Slack/Discord/Teams channel events
-  - Any other live, observable data (your team's choice)
-- You are encouraged to **be creative** with this connection—think of fun or unexpected ways for the mascot to reflect real world activity!
+## Troubleshooting
+- Blank page after build: ensure your host path matches base href `./`.
+- Dev port: Angular serves on `http://localhost:4200`.
+- Offline/blocked analytics: use `npm run dev-nolog` / `npm run build-nolog`.
+- Reset local config: clear keys under the `app:` namespace in browser localStorage.
 
-### 4. **Interactivity**
-- Users must be able to **interact** with the mascot through the browser (click, type, drag, play minigame, etc.)
-- Interactions must result in **visible changes** in the mascot's behavior, mood, or environment
-- The experience must feel "alive," not static
-
-### 5. **Browser-Based and Deployable**
-- Must be **100% browser-based**—works on Chrome/Edge/Firefox with no backend required beyond API calls or webhook listeners
-- Must be **deployable and viewable** by the judges and all Sigao team members via a public URL
-- All source code and assets must be checked into your team's branch on the Vibeathon repo
-
-### 6. **Test Harness / Demo Mode**
-- You must provide a **test harness or demo panel** that lets judges simulate all mascot moods and external data signals—no waiting for "real" events to occur
-- The harness must be accessible in the deployed app and allow full demonstration of the mascot's reactions and features
-
-### 7. **Configuration Route**
-- Must include an **Angular backend route** that allows configuration of mascot interactions
-- This route should provide an interface to:
-  - Adjust mascot behavior parameters
-  - Configure trigger thresholds
-  - Customize response mappings
-  - Enable/disable features
-- The configuration should be accessible through the Angular application
-
-### 8. **Documentation**
-- Include a clear **README**:
-  - How to run and deploy
-  - How to use the test harness
-  - What AI tools/prompts were used
-  - What external data source(s) you connected
-  - Mapping between triggers and mascot behavior
-  - How to access and use the configuration route
-
----
-
-## 🏆 Judging Criteria
-
-| Category | Weight | Description |
-|----------|--------|-------------|
-| **AI-Driven Code/Assets** | 25% | How effectively did you use AI to generate code and assets? |
-| **Mascot Personality** | 15% | How engaging and well-defined is your mascot's character? |
-| **Creativity of Connection** | 20% | How creative/unexpected is the connection to the outside world? |
-| **Interactivity & Fun** | 20% | How fun and responsive is the user experience? |
-| **Test Harness Quality** | 10% | How well can judges test all features? |
-| **Documentation & Clarity** | 10% | How clear are your instructions and documentation? |
-
----
-
-## 📚 Phaser Learning Resources
-
-### Official Documentation
-- **[Phaser 3 API Documentation](https://newdocs.phaser.io/docs/3.80.0)** - Official API reference
-- **[Phaser 3 Examples](https://phaser.io/examples)** - Hundreds of code examples
-- **[Phaser 3 Tutorials](https://phaser.io/tutorials/getting-started-phaser3)** - Step-by-step guides
-
-### Quick References
-- **[Scene Lifecycle](https://rexrainbow.github.io/phaser3-rex-notes/docs/site/scene/)** - Understanding init, preload, create, update
-- **[Input Events](https://rexrainbow.github.io/phaser3-rex-notes/docs/site/touchevents/)** - Mouse, touch, and keyboard handling
-- **[Phaser 3 Notes](https://rexrainbow.github.io/phaser3-rex-notes/docs/site/)** - Comprehensive community notes
-
-### Useful Tutorials
-- **[Making Your First Phaser 3 Game](https://phaser.io/tutorials/making-your-first-phaser-3-game)** - Official beginner tutorial
-- **[Phaser 3 TypeScript Template](https://github.com/photonstorm/phaser3-typescript-project-template)** - Official TypeScript starter template
-- **[Phaser 3 Guides](https://phaser.io/learn)** - Official learning resources and guides
-
-### Angular + Phaser Integration
-- **[Angular 19 Documentation](https://angular.dev/)** - Official Angular documentation
-- **[Angular Signals](https://angular.dev/guide/signals)** - Modern Angular state management
-- Use the EventBus pattern provided in this template for Angular-Phaser communication
-
-### Asset Resources
-- **[OpenGameArt](https://opengameart.org/)** - Free game assets
-- **[Kenney Assets](https://kenney.nl/assets)** - High-quality free game assets
-- **[Freesound](https://freesound.org/)** - Free sound effects
-
-### AI Tools for Game Development
-- **[Claude Code](https://claude.ai/code)** - AI pair programming for this hackathon
-
----
-
-## 💡 Tips for Success
-
-1. **Start Simple**: Get a basic mascot working first, then add complexity
-2. **Use the EventBus**: It's already set up for Angular-Phaser communication
-3. **Test Early**: Build your test harness as you go, not at the end
-4. **Document AI Usage**: Keep a log of all AI prompts and responses
-5. **Have Fun**: Be creative with your mascot's personality and reactions!
-
----
-
-Good luck, and may the best mascot win! 🎉
+Good luck, and have fun building a mascot with personality! 🎉
