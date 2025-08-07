@@ -6,14 +6,14 @@
             <button class="btn" (click)="changeScene()">Change Scene</button>
         </div>
         <div>
-            <button class="btn" [disabled]="canMoveSprite" (click)="moveSprite()">Toggle Movement</button>
+            <button class="btn" [disabled]="!canToggleMovement" (click)="toggleMovement()">Toggle Movement</button>
         </div>
         <div class="sprite-position">
             Sprite Position:
             <pre>{{ spritePosition | json }}</pre>
         </div>
         <div>
-            <button class="btn" (click)="addSprite()">Add New Sprite</button>
+            <button class="btn" [disabled]="!canAddSprite" (click)="addSprite()">Add New Sprite</button>
         </div>
         <div class="mt-2">
             <a routerLink="/config" class="btn btn-secondary">Game Configuration</a>

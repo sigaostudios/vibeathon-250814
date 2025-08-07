@@ -7,6 +7,8 @@ export class Game extends Scene
     background: Phaser.GameObjects.Image;
     gameText: Phaser.GameObjects.Text;
     sprites: Phaser.GameObjects.Sprite[];
+    spritesMoving: boolean = false;
+    moverTween?: Phaser.Tweens.Tween;
 
     constructor ()
     {
@@ -145,5 +147,48 @@ export class Game extends Scene
     changeScene ()
     {
         this.scene.start('GameOver');
+    }
+
+    toggleMovement (cb?: ({ x, y }: { x: number, y: number }) => void)
+    {
+        this.spritesMoving = !this.spritesMoving;
+
+        if (this.spritesMoving) {
+            this.startMovementTween(cb);
+        } else {
+            this.stopMovementTween();
+        }
+    }
+
+    private startMovementTween (cb?: ({ x, y }: { x: number, y: number }) => void)
+    {
+        this.stopMovementTween();
+
+        this.moverTween = this.tweens.addCounter({
+            from: 0,
+            to: Math.PI * 2,
+            duration: 2000,
+            repeat: -1,
+            yoyo: true,
+            onUpdate: (tw) => {
+                const t = tw.getValue() as number;
+                this.sprites.forEach((s, idx) => {
+                    s.x += Math.cos(t + idx) * 0.8;
+                    s.y += Math.sin(t + idx) * 0.6;
+                });
+                if (cb && this.sprites[0]) {
+                    cb({ x: Math.floor(this.sprites[0].x), y: Math.floor(this.sprites[0].y) });
+                }
+            }
+        });
+    }
+
+    private stopMovementTween ()
+    {
+        if (this.moverTween) {
+            this.moverTween.stop();
+            this.moverTween.remove();
+            this.moverTween = undefined;
+        }
     }
 }
