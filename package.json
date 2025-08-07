@@ -4,7 +4,7 @@
     "description": "A Phaser 3 project template that demonstrates Angular communication.",
     "scripts": {
         "ng": "ng",
-        "dev": "node log dev & ng serve",
+        "dev": "node log.js dev & ng serve",
         "build": "node log.js build & ng build --base-href='./'",
         "dev-nolog": "ng serve",
         "build-nolog": "ng build --base-href='./'"
@@ -37,6 +37,7 @@
         "phaser": "^3.90.0",
         "rxjs": "~7.8.0",
         "tslib": "^2.3.0",
+        "unstorage": "^1.16.1",
         "zone.js": "~0.15.0"
     },
     "devDependencies": {
