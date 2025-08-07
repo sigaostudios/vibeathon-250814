@@ -1,3 +1,5 @@
+![Vibeathon Mascot](vibeathon.png)
+
 Sigao Vibeathon 2024 --- **Team Mascot Challenge**
 ================================================
 
