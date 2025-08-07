@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
-import { Game as GameScene } from '../../game/scenes/Game';
+import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
 
 @Component({
@@ -32,16 +32,16 @@ export class HomeComponent {
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.currentSceneKey = scene.scene.key;
 
-            // Enable movement in MainMenu (logo tween) and Game (sprite motion)
-            this.canToggleMovement = this.currentSceneKey === 'MainMenu' || this.currentSceneKey === 'Game';
+            // Enable movement in MainMenu (logo tween) and MascotPlayground (mascot tween)
+            this.canToggleMovement = this.currentSceneKey === 'MainMenu' || this.currentSceneKey === 'MascotPlayground';
 
-            // Only allow adding sprites in the Game scene
-            this.canAddSprite = this.currentSceneKey === 'Game';
+            // Only allow adding sprites in the MascotPlayground scene
+            this.canAddSprite = this.currentSceneKey === 'MascotPlayground';
 
             // Reset movement indicators when the scene changes
             if (this.currentSceneKey === 'MainMenu') {
                 this.menuMoving = false;
-            } else if (this.currentSceneKey === 'Game') {
+            } else if (this.currentSceneKey === 'MascotPlayground') {
                 this.gameMoving = false;
             }
 
@@ -71,8 +71,8 @@ export class HomeComponent {
             });
             this.menuMoving = !this.menuMoving;
             this.updateStatus();
-        } else if (this.currentSceneKey === 'Game') {
-            const game = current as unknown as GameScene;
+        } else if (this.currentSceneKey === 'MascotPlayground') {
+            const game = current as unknown as MascotPlayground;
             if (typeof (game as any).toggleMovement === 'function') {
                 (game as any).toggleMovement(({ x, y }: { x: number; y: number }) => {
                     this.spritePosition = { x, y };
@@ -89,7 +89,7 @@ export class HomeComponent {
     }
 
     public addSprite(): void {
-        if (this.currentSceneKey === 'Game') {
+        if (this.currentSceneKey === 'MascotPlayground') {
             // Delegate sprite creation to the Phaser scene via EventBus
             EventBus.emit('add-sprite');
         }
@@ -97,7 +97,7 @@ export class HomeComponent {
 
     private updateStatus(): void {
         const movementOn = this.currentSceneKey === 'MainMenu' ? this.menuMoving
-                         : this.currentSceneKey === 'Game' ? this.gameMoving
+                         : this.currentSceneKey === 'MascotPlayground' ? this.gameMoving
                          : false;
         const movementText = movementOn ? 'On' : 'Off';
         const sceneText = this.currentSceneKey || '—';

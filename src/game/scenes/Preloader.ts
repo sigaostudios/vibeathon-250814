@@ -42,6 +42,14 @@ export class Preloader extends Scene
         this.load.spritesheet('cat', 'sprites/JumpCattt.png', { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('rabbit', 'sprites/Jumping.png', { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('pig', 'sprites/PigIdle.png', { frameWidth: 64, frameHeight: 64 });
+
+        // Orb mascot (3x3 = 9 frames, 237x213 per frame)
+        this.load.spritesheet('orb', 'orb.png', { frameWidth: 237, frameHeight: 213 });
+        // Background music + Orb SFX
+        this.load.audio('bgm', 'sounds/bg.mp3');
+        this.load.audio('orb1', 'sounds/orbsound1.mp3');
+        this.load.audio('orb2', 'sounds/orbsound2.wav');
+        this.load.audio('orb3', 'sounds/orbsound3.wav');
     }
 
     create ()

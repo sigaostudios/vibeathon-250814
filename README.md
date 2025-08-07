@@ -17,7 +17,7 @@ Notes
 - Production output path: `dist/template-angular/` (configured in `angular.json`).
 
 ## What You Get Out-of-the-Box
-- Scene flow (Boot → Preloader → MainMenu → Game → GameOver)
+- Scene flow (Boot → Preloader → MainMenu → MascotPlayground)
 - Overlay controls in Angular to drive scenes and movement
 - Config route with persistent settings (via `StorageService`)
 - EventBus for Angular ↔ Phaser messaging
@@ -35,7 +35,7 @@ src/
   game/
     main.ts                  # Phaser config and scene list
     EventBus.ts              # EventEmitter bridge
-    scenes/                  # Boot, Preloader, MainMenu, Game, GameOver
+    scenes/                  # Boot, Preloader, MainMenu, MascotPlayground
 public/
   assets/                    # Static assets copied to build
 ```
@@ -44,8 +44,8 @@ public/
 - Status pill: shows current scene and whether movement is On/Off
 - Buttons
   - Change Scene: calls the active scene’s `changeScene()`
-  - Toggle Movement: works in MainMenu (logo tween) and Game (sprite motion)
-  - Add New Sprite: enabled in Game, spawns a random animated sprite
+  - Toggle Movement: works in MainMenu (logo tween) and MascotPlayground (mascot tween)
+  - Add New Sprite: enabled in MascotPlayground, spawns a random animated companion
 
 The overlay subscribes to `EventBus` events to stay in sync with the active scene.
 
