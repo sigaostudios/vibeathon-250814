@@ -1,0 +1,93 @@
+<div class="configuration-container">
+    <div class="container">
+        <h1 class="text-center mb-4">Game Configuration</h1>
+        
+        <div class="config-grid">
+            <div class="card">
+                <h2 class="mb-3">Audio Settings</h2>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input 
+                            type="checkbox" 
+                            [(ngModel)]="config.soundEnabled"
+                            (change)="onSoundToggle()"
+                            class="checkbox-input">
+                        <span>Enable Sound</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="musicVolume">Music Volume: {{config.musicVolume}}%</label>
+                    <input 
+                        type="range" 
+                        id="musicVolume"
+                        [(ngModel)]="config.musicVolume"
+                        (input)="onMusicVolumeChange()"
+                        min="0" 
+                        max="100" 
+                        class="slider"
+                        [disabled]="!config.soundEnabled">
+                </div>
+
+                <div class="form-group">
+                    <label for="sfxVolume">SFX Volume: {{config.sfxVolume}}%</label>
+                    <input 
+                        type="range" 
+                        id="sfxVolume"
+                        [(ngModel)]="config.sfxVolume"
+                        (input)="onSfxVolumeChange()"
+                        min="0" 
+                        max="100" 
+                        class="slider"
+                        [disabled]="!config.soundEnabled">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="mb-3">Game Settings</h2>
+                
+                <div class="form-group">
+                    <label for="playerName">Player Name</label>
+                    <input 
+                        type="text" 
+                        id="playerName"
+                        [(ngModel)]="config.playerName"
+                        placeholder="Enter your name"
+                        class="text-input"
+                        maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label for="difficulty">Difficulty</label>
+                    <select 
+                        id="difficulty"
+                        [(ngModel)]="config.difficulty"
+                        (change)="onDifficultyChange()"
+                        class="select-input">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons mt-4">
+            <button class="btn" (click)="saveConfiguration()">
+                Save Configuration
+            </button>
+            <button class="btn btn-secondary" (click)="resetToDefaults()">
+                Reset to Defaults
+            </button>
+        </div>
+
+        <div class="save-message" [class.show]="savedMessage">
+            {{ savedMessage }}
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/" class="back-link">← Back to Game</a>
+        </div>
+    </div>
+</div>

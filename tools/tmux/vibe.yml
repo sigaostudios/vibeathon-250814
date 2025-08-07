@@ -1,0 +1,32 @@
+name: vibe-<%= @args[0][0] %>
+root: ~/dev/sigaostudios/vibeathon-250814/<%= @args[0] || "main"[0] || "main" %>
+enable_pane_titles: true
+pane_title_position: top
+pane_title_format: '#[fg=#dd2143]#[fg=black,bg=#dd2143] #{pane_title} #[fg=#dd2143,bg=default]#[default]'
+windows:
+  - servers-core 🫘🫘:
+      layout: even-horizontal
+      panes:
+        - angualr:
+          - clear 
+          - npm run dev
+  - ai 📎:
+      layout: main-vertical
+      main-pane-height: 60%
+      panes:
+          - claude:
+            - cd .
+            - claude
+          - scratchpad:
+            - cd .
+            - nvim ./scratch/scratchpad.md
+  - stats 📊:
+      layout: even-horizontal
+      panes:
+        - ai usage:
+          - clear && npx ccusage@latest blocks --live            
+        - system:
+          - htop     
+  - terminal 🖥:
+    panes:
+        - cd .

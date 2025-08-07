@@ -34,6 +34,14 @@ export class Preloader extends Scene
 
         this.load.image('logo', 'logo.png');
         this.load.image('star', 'star.png');
+        this.load.image('office', 'office.png');
+        
+        this.load.spritesheet('bird', 'sprites/BirdFly.png', { frameWidth: 16, frameHeight: 16 });
+        this.load.spritesheet('frog', 'sprites/FrogIdle.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('dog', 'sprites/GoldenBarking.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('cat', 'sprites/JumpCattt.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('rabbit', 'sprites/Jumping.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('pig', 'sprites/PigIdle.png', { frameWidth: 64, frameHeight: 64 });
     }
 
     create ()

@@ -1,0 +1,51 @@
+#app {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.controls-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    min-width: 200px;
+    backdrop-filter: blur(10px);
+}
+
+.controls-panel h3 {
+    margin-bottom: 1rem;
+    color: #0cc9bd;
+    font-size: 1.2rem;
+}
+
+.sprite-position {
+    margin: 10px 0 0 0;
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sprite-position pre {
+    margin: 5px 0;
+    color: #0cc9bd;
+}
+
+@media (max-width: 768px) {
+    .controls-panel {
+        top: 10px;
+        right: 10px;
+        padding: 1rem;
+        min-width: 150px;
+    }
+    
+    .controls-panel h3 {
+        font-size: 1rem;
+    }
+}
