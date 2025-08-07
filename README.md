@@ -108,13 +108,23 @@ All work will be checked in to your team's branch on https://github.com/sigaostu
 - You must provide a **test harness or demo panel** that lets judges simulate all mascot moods and external data signals—no waiting for "real" events to occur
 - The harness must be accessible in the deployed app and allow full demonstration of the mascot's reactions and features
 
-### 7. **Documentation**
+### 7. **Configuration Route**
+- Must include an **Angular backend route** that allows configuration of mascot interactions
+- This route should provide an interface to:
+  - Adjust mascot behavior parameters
+  - Configure trigger thresholds
+  - Customize response mappings
+  - Enable/disable features
+- The configuration should be accessible through the Angular application
+
+### 8. **Documentation**
 - Include a clear **README**:
   - How to run and deploy
   - How to use the test harness
   - What AI tools/prompts were used
   - What external data source(s) you connected
   - Mapping between triggers and mascot behavior
+  - How to access and use the configuration route
 
 ---
 
