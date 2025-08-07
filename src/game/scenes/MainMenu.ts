@@ -1,5 +1,4 @@
 import { GameObjects, Scene } from 'phaser';
-
 import { EventBus } from '../EventBus';
 
 export class MainMenu extends Scene
@@ -8,6 +7,7 @@ export class MainMenu extends Scene
     logo: GameObjects.Image;
     title: GameObjects.Text;
     logoTween: Phaser.Tweens.Tween | null;
+    private gameTitle: string = 'Vibeathon';
 
     constructor ()
     {
@@ -20,11 +20,31 @@ export class MainMenu extends Scene
 
         this.logo = this.add.image(512, 300, 'logo').setDepth(100);
 
-        this.title = this.add.text(512, 460, 'Main Menu', {
+        // Title pulled from config (updates via EventBus)
+        this.title = this.add.text(512, 80, this.gameTitle, {
             fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
             stroke: '#000000', strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5).setDepth(100);
+
+        const applyConfig = (config: any) => {
+            if (config && typeof config.gameTitle === 'string' && config.gameTitle.trim() !== '') {
+                this.gameTitle = config.gameTitle.trim();
+                this.title.setText(this.gameTitle);
+            }
+        };
+
+        EventBus.on('config-loaded', applyConfig);
+        EventBus.on('config-saved', applyConfig);
+
+        this.events.on('shutdown', () => {
+            EventBus.off('config-loaded', applyConfig);
+            EventBus.off('config-saved', applyConfig);
+        });
+        this.events.on('destroy', () => {
+            EventBus.off('config-loaded', applyConfig);
+            EventBus.off('config-saved', applyConfig);
+        });
 
         EventBus.emit('current-scene-ready', this);
     }

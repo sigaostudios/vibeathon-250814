@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { EventBus } from '../EventBus';
 
 export class Preloader extends Scene
 {
@@ -54,8 +55,27 @@ export class Preloader extends Scene
 
     create ()
     {
-        //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
-        //  For example, you can define global animations here, so we can use them in other scenes.
+        // Optionally display a title from config while leaving preloader
+        const title = this.add.text(512, 40, 'Vibeathon', {
+            fontFamily: 'Arial Black', fontSize: 28, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 6, align: 'center'
+        }).setOrigin(0.5).setDepth(100);
+
+        const applyConfig = (config: any) => {
+            if (config && typeof config.gameTitle === 'string' && config.gameTitle.trim() !== '') {
+                title.setText(config.gameTitle.trim());
+            }
+        };
+
+        // Update if Angular has loaded config already
+        // Note: Preloader is brief; title is best visible in menu + game
+        // wire-up anyway to be consistent across scenes
+        EventBus.on('config-loaded', applyConfig);
+        EventBus.on('config-saved', applyConfig);
+        this.events.on('shutdown', () => {
+            EventBus.off('config-loaded', applyConfig);
+            EventBus.off('config-saved', applyConfig);
+        });
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');
