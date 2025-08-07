@@ -83,6 +83,11 @@ Tip: Use this route to add more mascot parameters (mood thresholds, animation sp
 - Make states obvious: show status text or simple color/mood changes.
 - Keep asset sizes and animation counts reasonable — faster iteration wins.
 
+## Team Learnings Deliverable
+- Each team should add a short write-up at `learnings/learnings.md`.
+- Summarize how you used AI as a team: what worked, what didn’t, collaboration patterns, and prompt strategies you’d reuse.
+- No need to log every single prompt; focus on insights and takeaways that would help future teams.
+
 ## Scripts
 - `npm run dev` — `log.js` + Angular dev server
 - `npm run dev-nolog` — Angular dev server only
@@ -96,7 +101,7 @@ Tip: Use this route to add more mascot parameters (mood thresholds, animation sp
 ## Contributing During Vibeathon
 - Branch per team: do work in your team branch and open PRs if helpful.
 - Keep commits small and descriptive (e.g., "Add scene transition", "Hook up Slack webhook").
-- Document AI usage (prompts, iterations). A `/prompts` folder or section in README works.
+- Create `learnings/learnings.md` (see above) to capture team-level insights about using AI. Detailed prompt-by-prompt logs are not required.
 
 ## Troubleshooting
 - Blank page after build: ensure your host path matches base href `./`.
