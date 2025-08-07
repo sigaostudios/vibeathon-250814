@@ -144,15 +144,14 @@ All work will be checked in to your team's branch on https://github.com/sigaostu
 ## 📚 Phaser Learning Resources
 
 ### Official Documentation
-- **[Phaser 3 Documentation](https://photonstorm.github.io/phaser3-docs/)** - Complete API reference
+- **[Phaser 3 API Documentation](https://newdocs.phaser.io/docs/3.80.0)** - Official API reference
 - **[Phaser 3 Examples](https://phaser.io/examples)** - Hundreds of code examples
 - **[Phaser 3 Tutorials](https://phaser.io/tutorials/getting-started-phaser3)** - Step-by-step guides
 
 ### Quick References
-- **[Phaser 3 Cheatsheet](https://github.com/photonstorm/phaser3-docs/blob/master/cheatsheet.md)** - Quick command reference
 - **[Scene Lifecycle](https://rexrainbow.github.io/phaser3-rex-notes/docs/site/scene/)** - Understanding init, preload, create, update
 - **[Input Events](https://rexrainbow.github.io/phaser3-rex-notes/docs/site/touchevents/)** - Mouse, touch, and keyboard handling
-- **[Animations Guide](https://photonstorm.github.io/phaser3-docs/Phaser.Animations.AnimationManager.html)** - Creating sprite animations
+- **[Phaser 3 Notes](https://rexrainbow.github.io/phaser3-rex-notes/docs/site/)** - Comprehensive community notes
 
 ### Useful Tutorials
 - **[Making Your First Phaser 3 Game](https://phaser.io/tutorials/making-your-first-phaser-3-game)** - Official beginner tutorial
@@ -160,8 +159,9 @@ All work will be checked in to your team's branch on https://github.com/sigaostu
 - **[Phaser 3 Sprites and Images](https://www.patchesoft.com/phaser-3-sprites-and-images)** - Working with visual assets
 
 ### Angular + Phaser Integration
-- **[Angular-Phaser Bridge Pattern](https://medium.com/@natalieamalia/integrating-phaser-3-with-angular-6e3e8fd7b07a)** - Communication between frameworks
-- **[EventEmitter Pattern](https://angular.io/api/core/EventEmitter)** - Angular's event system for component communication
+- **[Angular 19 Documentation](https://angular.dev/)** - Official Angular documentation
+- **[Angular Signals](https://angular.dev/guide/signals)** - Modern Angular state management
+- Use the EventBus pattern provided in this template for Angular-Phaser communication
 
 ### Asset Resources
 - **[OpenGameArt](https://opengameart.org/)** - Free game assets
@@ -169,10 +169,7 @@ All work will be checked in to your team's branch on https://github.com/sigaostu
 - **[Freesound](https://freesound.org/)** - Free sound effects
 
 ### AI Tools for Game Development
-- **[Claude Code](https://claude.ai/code)** - AI pair programming
-- **[GitHub Copilot](https://github.com/features/copilot)** - AI code suggestions
-- **[ChatGPT](https://chat.openai.com/)** - General AI assistance
-- **[Cursor](https://cursor.sh/)** - AI-powered code editor
+- **[Claude Code](https://claude.ai/code)** - AI pair programming for this hackathon
 
 ---
 
