@@ -155,8 +155,8 @@ All work will be checked in to your team's branch on https://github.com/sigaostu
 
 ### Useful Tutorials
 - **[Making Your First Phaser 3 Game](https://phaser.io/tutorials/making-your-first-phaser-3-game)** - Official beginner tutorial
-- **[Phaser 3 + TypeScript](https://www.thepolyglotdeveloper.com/2020/09/phaser-3-typescript-tutorial-webgl-game/)** - TypeScript integration
-- **[Phaser 3 Sprites and Images](https://www.patchesoft.com/phaser-3-sprites-and-images)** - Working with visual assets
+- **[Phaser 3 TypeScript Template](https://github.com/photonstorm/phaser3-typescript-project-template)** - Official TypeScript starter template
+- **[Phaser 3 Guides](https://phaser.io/learn)** - Official learning resources and guides
 
 ### Angular + Phaser Integration
 - **[Angular 19 Documentation](https://angular.dev/)** - Official Angular documentation
