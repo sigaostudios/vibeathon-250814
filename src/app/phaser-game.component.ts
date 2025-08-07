@@ -25,6 +25,9 @@ export class PhaserGameComponent implements OnInit, OnDestroy
         // Load any saved game configuration (if present)
         this.storage.getItem<any>('gameConfig').then(cfg => {
             this.loadedConfig = cfg;
+            if (cfg) {
+                EventBus.emit('config-loaded', cfg);
+            }
         });
 
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) =>

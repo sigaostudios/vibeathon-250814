@@ -9,6 +9,7 @@ export class Game extends Scene
     sprites: Phaser.GameObjects.Sprite[];
     spritesMoving: boolean = false;
     moverTween?: Phaser.Tweens.Tween;
+    private gameTitle: string = 'Vibeathon';
 
     constructor ()
     {
@@ -22,7 +23,7 @@ export class Game extends Scene
 
         this.background = this.add.image(512, 384, 'office');
 
-        this.gameText = this.add.text(512, 50, 'Animal Sprites Demo', {
+        this.gameText = this.add.text(512, 50, this.gameTitle, {
             fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
             stroke: '#000000', strokeThickness: 8,
             align: 'center'
@@ -100,6 +101,15 @@ export class Game extends Scene
 
         EventBus.emit('current-scene-ready', this);
 
+        // Apply any stored config immediately if present in localStorage (fallback)
+        try {
+            const raw = localStorage.getItem('app:gameConfig');
+            if (raw) {
+                const cfg = JSON.parse(raw);
+                this.applyConfig(cfg);
+            }
+        } catch {}
+
         // Listen for requests from Angular to add a random sprite
         const onAddSprite = () => {
             const x = Phaser.Math.Between(64, this.scale.width - 64);
@@ -138,10 +148,20 @@ export class Game extends Scene
         };
 
         EventBus.on('add-sprite', onAddSprite);
+        EventBus.on('config-loaded', this.applyConfig, this);
+        EventBus.on('config-saved', this.applyConfig, this);
 
         // Clean up listener when scene shuts down or is destroyed
-        this.events.on('shutdown', () => EventBus.off('add-sprite', onAddSprite));
-        this.events.on('destroy', () => EventBus.off('add-sprite', onAddSprite));
+        this.events.on('shutdown', () => {
+            EventBus.off('add-sprite', onAddSprite);
+            EventBus.off('config-loaded', this.applyConfig, this);
+            EventBus.off('config-saved', this.applyConfig, this);
+        });
+        this.events.on('destroy', () => {
+            EventBus.off('add-sprite', onAddSprite);
+            EventBus.off('config-loaded', this.applyConfig, this);
+            EventBus.off('config-saved', this.applyConfig, this);
+        });
     }
 
     changeScene ()
@@ -189,6 +209,16 @@ export class Game extends Scene
             this.moverTween.stop();
             this.moverTween.remove();
             this.moverTween = undefined;
+        }
+    }
+
+    private applyConfig (config: any)
+    {
+        if (config && typeof config.gameTitle === 'string' && config.gameTitle.trim() !== '') {
+            this.gameTitle = config.gameTitle.trim();
+            if (this.gameText) {
+                this.gameText.setText(this.gameTitle);
+            }
         }
     }
 }

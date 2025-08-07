@@ -5,6 +5,7 @@ import { EventBus } from '../../game/EventBus';
 import { StorageService } from '../storage.service';
 
 interface GameConfig {
+    gameTitle: string;
     soundEnabled: boolean;
     musicVolume: number;
     sfxVolume: number;
@@ -21,6 +22,7 @@ interface GameConfig {
 })
 export class ConfigurationComponent implements OnInit {
     config: GameConfig = {
+        gameTitle: 'Vibeathon',
         soundEnabled: true,
         musicVolume: 70,
         sfxVolume: 80,
@@ -69,6 +71,7 @@ export class ConfigurationComponent implements OnInit {
 
     resetToDefaults(): void {
         this.config = {
+            gameTitle: 'Vibeathon',
             soundEnabled: true,
             musicVolume: 70,
             sfxVolume: 80,

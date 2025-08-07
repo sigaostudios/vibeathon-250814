@@ -48,6 +48,17 @@
                 <h2 class="mb-3">Game Settings</h2>
                 
                 <div class="form-group">
+                    <label for="gameTitle">Game Title</label>
+                    <input 
+                        type="text" 
+                        id="gameTitle"
+                        [(ngModel)]="config.gameTitle"
+                        placeholder="Enter game title"
+                        class="text-input"
+                        maxlength="30">
+                </div>
+
+                <div class="form-group">
                     <label for="playerName">Player Name</label>
                     <input 
                         type="text" 
