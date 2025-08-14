@@ -96,6 +96,12 @@ export class MascotPlayground extends Scene {
 
         // Allow Angular to add companion sprites
         const onAddSprite = () => {
+            // Show Brandon's speech bubble and hide it after 3 seconds
+            this.showBrandonSpeech('Ah, refreshing!');
+            this.time.delayedCall(3000, () => {
+                this.hideBrandonSpeech();
+            });
+            
             const x = Phaser.Math.Between(80, this.scale.width - 80);
             const y = Phaser.Math.Between(120, this.scale.height - 80);
             
