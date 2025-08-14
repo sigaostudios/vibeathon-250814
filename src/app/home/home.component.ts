@@ -5,6 +5,7 @@ import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
+import { NewsService } from '../services/news.service';
 
 @Component({
     selector: 'app-home',
@@ -27,7 +28,7 @@ export class HomeComponent {
     // Get the PhaserGame component instance
     phaserRef = viewChild.required(PhaserGameComponent);
 
-    constructor() {
+    constructor(private newsService: NewsService) {
         // Track the active scene and enable/disable controls accordingly
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.currentSceneKey = scene.scene.key;
@@ -92,6 +93,14 @@ export class HomeComponent {
         if (this.currentSceneKey === 'MascotPlayground') {
             // Delegate sprite creation to the Phaser scene via EventBus
             EventBus.emit('add-sprite');
+        }
+    }
+
+    public goToNews(): void {
+        const game = this.phaserRef().game;
+        if (game && game.scene) {
+            // Switch to the News scene
+            game.scene.switch(this.currentSceneKey, 'NewsScene');
         }
     }
 

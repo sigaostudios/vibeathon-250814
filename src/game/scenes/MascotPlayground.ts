@@ -1,11 +1,13 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { VibeathonMascot } from '../sprites/VibeathonMascot';
 
 export class MascotPlayground extends Scene {
     camera!: Phaser.Cameras.Scene2D.Camera;
     background!: Phaser.GameObjects.Image;
     titleText!: Phaser.GameObjects.Text;
     mascot!: Phaser.GameObjects.Sprite;
+    vibeathonMascot!: VibeathonMascot;
     vibeTween?: Phaser.Tweens.Tween;
     sparkle!: Phaser.GameObjects.Particles.ParticleEmitter;
     sprites: Phaser.GameObjects.Sprite[] = [];
@@ -15,6 +17,7 @@ export class MascotPlayground extends Scene {
     private music?: Phaser.Sound.BaseSound;
     private musicVolume = 0.04; // very soft
     private sfxVolume = 0.35;   // fairly soft by default
+    private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
     constructor() {
         super('MascotPlayground');
@@ -23,6 +26,8 @@ export class MascotPlayground extends Scene {
     create() {
         this.camera = this.cameras.main;
         this.background = this.add.image(512, 384, 'office');
+        
+        this.cursors = this.input.keyboard!.createCursorKeys();
 
         // Title driven by config
         this.titleText = this.add.text(512, 50, this.gameTitle, {
@@ -69,29 +74,18 @@ export class MascotPlayground extends Scene {
             obj.setPosition(x, y);
         });
 
+        // Add Vibeathon mascot
+        this.vibeathonMascot = new VibeathonMascot(this, 700, 500);
+        this.sprites.push(this.vibeathonMascot);
+
         // Allow Angular to add companion sprites
         const onAddSprite = () => {
             const x = Phaser.Math.Between(80, this.scale.width - 80);
-            const y = Phaser.Math.Between(120, this.scale.height - 80);
-            const options: { key: string; anim: string; scale?: number }[] = [
-                { key: 'bird', anim: 'bird-fly', scale: 3 },
-                { key: 'frog', anim: 'frog-idle', scale: 2 }
-            ];
-            const pick = Phaser.Math.RND.pick(options);
-            const s = this.add.sprite(x, y, pick.key);
-            if (pick.scale) s.setScale(pick.scale);
-            s.play(pick.anim);
-
-            // Gentle float tween to make it feel alive
-            this.tweens.add({
-                targets: s,
-                y: y + Phaser.Math.Between(-30, 30),
-                duration: 1600,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-            this.sprites.push(s);
+            const y = Phaser.Math.Between(400, this.scale.height - 100);
+            
+            // Add a new Vibeathon mascot
+            const newMascot = new VibeathonMascot(this, x, y);
+            this.sprites.push(newMascot);
         };
 
         EventBus.on('add-sprite', onAddSprite);
@@ -218,5 +212,11 @@ export class MascotPlayground extends Scene {
             } catch {}
             this.scheduleNextOrbSound();
         });
+    }
+
+    override update() {
+        if (this.vibeathonMascot && this.cursors) {
+            this.vibeathonMascot.updateMovement(this.cursors);
+        }
     }
 }

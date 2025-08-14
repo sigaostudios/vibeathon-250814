@@ -8,6 +8,9 @@
         "build": "node log.js build & ng build --base-href='./'",
         "dev-nolog": "ng serve",
         "build-nolog": "ng build --base-href='./'",
+        "server": "node server.js",
+        "start": "npm run build-nolog && npm run server",
+        "dev:full": "concurrently \"npm run server\" \"ng serve --proxy-config proxy.conf.json\"",
         "postinstall": "node -e \"if(process.platform==='linux'){require('child_process').exec('bash tools/tmux/postinstall.sh',{stdio:'inherit'},(e)=>e&&console.error(e))}\""
     },
     "repository": {
@@ -35,6 +38,10 @@
         "@angular/platform-browser": "^19.2.0",
         "@angular/platform-browser-dynamic": "^19.2.0",
         "@angular/router": "^19.2.0",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.1",
+        "express": "^4.21.2",
+        "node-fetch": "^3.3.2",
         "phaser": "^3.90.0",
         "rxjs": "~7.8.0",
         "tslib": "^2.3.0",
@@ -46,6 +53,7 @@
         "@angular/cli": "^19.2.8",
         "@angular/compiler-cli": "^19.2.0",
         "@types/jasmine": "~5.1.0",
+        "concurrently": "^9.2.0",
         "jasmine-core": "~5.6.0",
         "karma": "~6.4.0",
         "karma-chrome-launcher": "~3.2.0",

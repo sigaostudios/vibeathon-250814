@@ -73,6 +73,17 @@
     color: #0cc9bd;
 }
 
+.btn-news {
+    background: linear-gradient(135deg, #ff6b00, #ff8c00);
+    border-color: #ff6b00;
+}
+
+.btn-news:hover {
+    background: linear-gradient(135deg, #ff8c00, #ffa500);
+    border-color: #ff8c00;
+    transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
     .controls-panel {
         top: 10px;
