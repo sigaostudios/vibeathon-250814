@@ -1,4 +1,4 @@
-import { Component, viewChild } from '@angular/core';
+import { Component, viewChild, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PhaserGameComponent } from '../phaser-game.component';
@@ -16,7 +16,7 @@ import { AIService } from '../services/ai/ai.service';
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
 })
-export class HomeComponent {
+export class HomeComponent implements OnDestroy {
     public spritePosition = { x: 0, y: 0 };
     public canToggleMovement = false;
     public canAddSprite = false;
@@ -26,6 +26,11 @@ export class HomeComponent {
     private gameMoving = false;
 
     public statusLabel = '—';
+    
+    // Konami code sequence: up, up, down, down, left, right, left, right, b, a
+    private konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+    private konamiInput: string[] = [];
+    private konamiTimeoutId?: number;
 
 
     // Get the PhaserGame component instance
@@ -105,17 +110,28 @@ export class HomeComponent {
     }
 
     public engageInEspionage(): void {
-        console.log('Espionage button clicked - calling AI summary');
+        console.log('Espionage activated via Konami code - calling AI summary');
+        
+        // Show Brandon's speech bubble while fetching
+        EventBus.emit('show-brandon-speech', 'Engaging in super top secret espionage');
+        
         // Use the new AI summary functionality instead of just the latest commit
         this.branchSpyService.getAISummaryOfRecentChanges().subscribe({
             next: (summary) => {
                 console.log('Received AI summary:', summary);
-                // Send the AI summary to the game scene to display
-                EventBus.emit('display-espionage-text', summary);
+                // Ensure speech bubble stays for at least 5 seconds
+                setTimeout(() => {
+                    EventBus.emit('hide-brandon-speech');
+                    EventBus.emit('display-espionage-text', summary);
+                }, 5000);
             },
             error: (error) => {
                 console.error('Error getting AI summary:', error);
-                EventBus.emit('display-espionage-text', 'Error: ' + error.message);
+                // Ensure speech bubble stays for at least 5 seconds even on error
+                setTimeout(() => {
+                    EventBus.emit('hide-brandon-speech');
+                    EventBus.emit('display-espionage-text', 'Error: ' + error.message);
+                }, 5000);
             }
         });
     }
@@ -144,5 +160,44 @@ export class HomeComponent {
         const movementText = movementOn ? 'On' : 'Off';
         const sceneText = this.currentSceneKey || '—';
         this.statusLabel = `Scene: ${sceneText} • Movement: ${movementText}`;
+    }
+
+    @HostListener('window:keydown', ['$event'])
+    onKeyDown(event: KeyboardEvent): void {
+        // Clear existing timeout
+        if (this.konamiTimeoutId) {
+            clearTimeout(this.konamiTimeoutId);
+        }
+
+        // Add the pressed key to the input sequence
+        this.konamiInput.push(event.code);
+
+        // Keep only the last 10 keys (length of Konami sequence)
+        if (this.konamiInput.length > this.konamiSequence.length) {
+            this.konamiInput.shift();
+        }
+
+        // Check if the current sequence matches the Konami code
+        if (this.konamiInput.length === this.konamiSequence.length) {
+            const isKonamiCode = this.konamiInput.every((key, index) => key === this.konamiSequence[index]);
+            
+            if (isKonamiCode) {
+                console.log('Konami code detected! Engaging espionage...');
+                this.engageInEspionage();
+                this.konamiInput = []; // Reset sequence
+                return;
+            }
+        }
+
+        // Set timeout to reset sequence after 3 seconds of inactivity
+        this.konamiTimeoutId = window.setTimeout(() => {
+            this.konamiInput = [];
+        }, 3000);
+    }
+
+    ngOnDestroy(): void {
+        if (this.konamiTimeoutId) {
+            clearTimeout(this.konamiTimeoutId);
+        }
     }
 }
