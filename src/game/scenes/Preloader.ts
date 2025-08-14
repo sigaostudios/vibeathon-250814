@@ -71,6 +71,9 @@ export class Preloader extends Scene
         
         // Woop woop woop sound for Brandon's flip
         this.load.audio('woop-woop', 'sounds/11L-a_woop_woop_woop_sou-1755200966596.mp3');
+        
+        // Where that just go sound for airplane clicks
+        this.load.audio('where-that-go', 'sounds/whereThatJustGo.m4a');
     }
 
     create ()

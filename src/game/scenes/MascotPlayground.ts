@@ -614,6 +614,14 @@ export class MascotPlayground extends Scene {
             
             // Add click handler to show flight details
             airplane.on('pointerdown', () => {
+                // Play the "where that just go" sound when clicking on airplane
+                try {
+                    this.sound.play('where-that-go', { volume: this.sfxVolume });
+                    console.log('🎵 Playing "where that just go" sound for airplane click!');
+                } catch (error) {
+                    console.warn('Could not play where-that-go sound:', error);
+                }
+                
                 this.showFlightDetails(flightInfo);
             });
 
