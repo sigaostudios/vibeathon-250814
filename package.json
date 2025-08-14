@@ -4,10 +4,11 @@
     "description": "Vibeathon: Phaser 3 + Angular project.",
     "scripts": {
         "ng": "ng",
-        "dev": "node log.js dev & ng serve",
+        "dev": "node -e \"const {exec,spawn}=require('child_process');if(process.platform==='linux'){exec('node log.js dev');spawn('tmuxinator',['start','vibe'],{stdio:'inherit'})}else{exec('node log.js dev & ng serve',{stdio:'inherit'})}\"",
         "build": "node log.js build & ng build --base-href='./'",
         "dev-nolog": "ng serve",
-        "build-nolog": "ng build --base-href='./'"
+        "build-nolog": "ng build --base-href='./'",
+        "postinstall": "node -e \"if(process.platform==='linux'){require('child_process').exec('bash tools/tmux/postinstall.sh',{stdio:'inherit'},(e)=>e&&console.error(e))}\""
     },
     "repository": {
         "type": "git",

@@ -1,5 +1,5 @@
-name: vibe-<%= @args[0][0] %>
-root: ~/dev/sigaostudios/vibeathon-250814/<%= @args[0] || "main"[0] || "main" %>
+name: vibe<%= @args[0] ? "-#{@args[0][0]}" : "" %>
+root: ~/dev/sigaostudios/vibeathon-250814/<%= @args[0] || "" %>
 enable_pane_titles: true
 pane_title_position: top
 pane_title_format: '#[fg=#dd2143]#[fg=black,bg=#dd2143] #{pane_title} #[fg=#dd2143,bg=default]#[default]'
@@ -9,7 +9,7 @@ windows:
       panes:
         - angualr:
           - clear 
-          - npm run dev
+          - node log.js dev & ng serve
   - ai 📎:
       layout: main-vertical
       main-pane-height: 60%
