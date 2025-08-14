@@ -52,6 +52,9 @@ export class Preloader extends Scene
         
         // Sprite Fanta can
         this.load.image('sprite-can', 'sprites/imgbin-sprite-fizzy-drinks-coca-cola-fanta-beverage-can-fanta-sprite-easy-open-can-illustration-be9j6i4QyWc9apqwAvp5TY1Ad.png');
+        
+        // Airplane sprite for flight tracking
+        this.load.svg('airplane', 'sprites/airplane.svg', { width: 32, height: 32 });
         // Background music + Orb SFX
         this.load.audio('bgm', 'sounds/bg.mp3');
         this.load.audio('orb1', 'sounds/orbsound1.mp3');
