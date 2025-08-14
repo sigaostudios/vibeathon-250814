@@ -109,18 +109,20 @@ export class NewsAgentService {
     constructor(private injector: Injector) {}
 
     private callLLM(prompt: string): Observable<string> {
-        console.log('NewsAgentService: callLLM called with prompt:', prompt);
+        console.log('🔴 NewsAgentService: callLLM called with prompt:', prompt);
         return from(this.makeLLMRequest(prompt)).pipe(
             catchError(error => {
-                console.warn('LLM request failed, falling back to static content:', error);
+                console.warn('🔴 LLM request failed, falling back to static content:', error);
                 return of(this.getFallbackResponse(prompt));
             })
         );
     }
 
     private async makeLLMRequest(prompt: string): Promise<string> {
-        console.log('NewsAgentService: Making LLM request to /api/llm');
+        console.log('🟡 NewsAgentService: Making LLM request to /api/llm');
+        console.log('🟡 Prompt being sent:', prompt);
         try {
+            console.log('🟡 About to fetch /api/llm...');
             const response = await fetch('/api/llm', {
                 method: 'POST',
                 headers: {
@@ -129,7 +131,7 @@ export class NewsAgentService {
                 body: JSON.stringify({ prompt })
             });
             
-            console.log('NewsAgentService: LLM response status:', response.status);
+            console.log('🟢 NewsAgentService: LLM response status:', response.status);
             
             if (response.ok) {
                 const data = await response.json();

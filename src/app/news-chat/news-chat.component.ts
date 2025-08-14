@@ -332,6 +332,8 @@ export class NewsChatComponent implements OnInit, OnDestroy {
         const message = this.userInput.trim();
         if (!message || this.isLoading) return;
 
+        console.log('📤 NewsChatComponent: Sending message:', message);
+
         // Add user message
         this.messages.push({
             text: message,
@@ -343,6 +345,7 @@ export class NewsChatComponent implements OnInit, OnDestroy {
         this.isLoading = true;
 
         // Send to Phaser scene
+        console.log('📤 NewsChatComponent: Emitting user-question event');
         EventBus.emit('user-question', message);
 
         // Simulate response if no real response comes

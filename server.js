@@ -20,6 +20,8 @@ app.use(express.static(path.join(__dirname, 'dist/vibeathon-250814')));
 
 // LLM endpoint for the news agent
 app.post('/api/llm', async (req, res) => {
+    console.log('🔵 SERVER: Received POST /api/llm request');
+    console.log('🔵 SERVER: Request body:', req.body);
     try {
         const { prompt } = req.body;
         

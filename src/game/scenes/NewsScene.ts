@@ -398,6 +398,7 @@ export class NewsScene extends Scene {
     }
 
     private typewriterEffect(text: string, onComplete?: () => void) {
+        console.log('🎮 NewsScene: Starting typewriter effect for text:', text);
         // Stop any existing typewriter
         if (this.typewriterEvent) {
             this.typewriterEvent.destroy();
@@ -419,13 +420,15 @@ export class NewsScene extends Scene {
                     charIndex++;
                 } else {
                     // Finished typing
+                    console.log('🎮 NewsScene: Typewriter effect complete, calling onComplete callback');
                     this.typewriterEvent?.destroy();
+                    this.typewriterEvent = undefined;
                     if (onComplete) {
                         onComplete();
                     }
                 }
             },
-            repeat: this.targetText.length - 1
+            repeat: this.targetText.length
         });
     }
 
@@ -493,8 +496,8 @@ export class NewsScene extends Scene {
         this.animateAnchor('error');
     }
 
-    private handleUserQuestion(question: string) {
-        console.log('NewsScene: Received user question:', question);
+    private handleUserQuestion = (question: string) => {
+        console.log('🎮 NewsScene: Received user question:', question);
         
         // Stop auto-mode when user asks a question
         this.isInAutoMode = false;
@@ -502,8 +505,15 @@ export class NewsScene extends Scene {
         
         // Show that we're processing the question
         this.typewriterEffect(`Excellent question! Let me check my sources...`, () => {
-            console.log('NewsScene: Emitting process-news-query for:', question);
+            console.log('🎮 NewsScene: Typewriter complete, emitting process-news-query for:', question);
             // Request answer from NewsAgent
+            EventBus.emit('process-news-query', { query: question });
+            console.log('🎮 NewsScene: process-news-query event emitted');
+        });
+        
+        // Failsafe: If typewriter doesn't complete within 3 seconds, emit anyway
+        this.time.delayedCall(3000, () => {
+            console.log('🎮 NewsScene: Failsafe - ensuring process-news-query is emitted');
             EventBus.emit('process-news-query', { query: question });
         });
         
