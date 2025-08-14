@@ -16,8 +16,7 @@ import { EventBus } from '../../../game/EventBus';
       <div class="notification-header">
         <h4>✈️ Flight Tracking</h4>
         <div class="location-status" *ngIf="userLocation">
-          📍 {{userLocation.city}}, {{userLocation.state}} ({{userLocation.zipCode}})
-          <br><small>{{userLocation.latitude | number:'1.4-4'}}, {{userLocation.longitude | number:'1.4-4'}}</small>
+          📍 {{userLocation.city}}, {{userLocation.state}}
         </div>
       </div>
 
@@ -33,10 +32,6 @@ import { EventBus } from '../../../game/EventBus';
         <button class="retry-btn" (click)="retryFlightTracking()">Retry</button>
       </div>
 
-      <!-- Debug Information -->
-      <div class="debug-info" *ngIf="debugMessage">
-        🔍 Debug: {{debugMessage}}
-      </div>
       
       <!-- Manual Flight Check Button -->
       <div class="flight-check" style="margin: 10px 0;">
@@ -81,7 +76,7 @@ import { EventBus } from '../../../game/EventBus';
       </div>
 
       <!-- No Flights Found -->
-      <div class="no-flights" *ngIf="!isLoading && !errorMessage && nearbyFlights.length === 0 && hasSearched">
+      <div class="no-flights" *ngIf="!isLoading && !errorMessage && nearbyFlights.length === 0 && hasSearched && lastButtonPressed">
         <div>No flights found within 10km.</div>
       </div>
       
@@ -195,11 +190,6 @@ import { EventBus } from '../../../game/EventBus';
       transform: none;
     }
     
-    .debug-info {
-      color: #888;
-      font-size: 12px;
-      margin: 5px 0;
-    }
     
     .no-flights {
       color: #888;
@@ -327,8 +317,8 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
   isLoading = false;
   loadingMessage = '';
   errorMessage = '';
-  debugMessage = '';
   hasSearched = false;
+  lastButtonPressed = false;
   nextCheckMinutes = 2;
   
   private subscriptions = new Subscription();
@@ -353,11 +343,9 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
   private clearFlightTrackingUI(): void {
     this.nearbyFlights = [];
     this.hasSearched = false;
-    this.debugMessage = 'All flights have finished crossing the screen';
   }
 
   private async initializeFlightTracking(): Promise<void> {
-    this.debugMessage = 'Initializing flight tracking...';
     
     // Subscribe to nearby flights
     this.subscriptions.add(
@@ -365,7 +353,6 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.nearbyFlights = flights;
         this.hasSearched = true;
-        this.debugMessage = `Found ${flights.length} flights`;
         
         if (flights.length === 0 && this.hasSearched) {
           // Only clear error if we actually searched and found nothing
@@ -390,10 +377,7 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
         this.locationError = !location;
         
         if (location) {
-          this.debugMessage = `Location found: ${location.city}, ${location.state}`;
           this.errorMessage = '';
-        } else {
-          this.debugMessage = 'No location available';
         }
         
         // Don't auto-search anymore - wait for button click
@@ -402,11 +386,8 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
 
     // Check if we already have a location from config
     const currentLocation = this.zipLocationService.getCurrentLocation();
-    if (currentLocation) {
-      this.debugMessage = 'Location loaded from config. Click "Flights Above Me" to search.';
-    } else {
+    if (!currentLocation) {
       this.locationError = true;
-      this.debugMessage = 'No location found in config';
     }
   }
 
@@ -414,14 +395,12 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.loadingMessage = 'Searching for nearby flights...';
     this.errorMessage = '';
-    this.debugMessage = `Searching flights near ${location.city}...`;
     
     // Set a timeout to detect if the service doesn't respond
     const timeoutId = setTimeout(() => {
       if (this.isLoading) {
         this.isLoading = false;
         this.errorMessage = 'OpenSky API rate limit reached. Try Demo Mode or wait until tomorrow.';
-        this.debugMessage = 'API request timed out or blocked';
       }
     }, 10000); // 10 second timeout
     
@@ -438,7 +417,6 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
       clearTimeout(timeoutId);
       this.isLoading = false;
       this.errorMessage = 'Failed to search for flights';
-      this.debugMessage = `Error: ${error}`;
     }
   }
 
@@ -452,20 +430,20 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
   }
 
   checkFlightsAboveMe(): void {
+    this.lastButtonPressed = true;
     const currentLocation = this.zipLocationService.getCurrentLocation();
     if (currentLocation) {
       this.performFlightSearch(currentLocation);
     } else {
       this.errorMessage = 'No location available for search';
-      this.debugMessage = 'Please configure your ZIP code in settings';
     }
   }
 
   showDemoFlights(): void {
+    this.lastButtonPressed = true;
     this.isLoading = true;
     this.loadingMessage = 'Loading demo flights...';
     this.errorMessage = '';
-    this.debugMessage = 'Showing demo flight data';
     
     // Simulate API delay
     setTimeout(() => {
@@ -526,7 +504,6 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
       this.isLoading = false;
       this.nearbyFlights = demoFlights;
       this.hasSearched = true;
-      this.debugMessage = `Demo: Found ${demoFlights.length} flights (randomized)`;
       
       // Emit to game
       const overheadFlights = demoFlights.filter(f => f.isOverhead);
