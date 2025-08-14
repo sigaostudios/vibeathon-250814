@@ -80,8 +80,10 @@ export class StocksService {
     if (!this.apiKey && !this.demoMode) {
       console.warn('No API key set. Please configure your Polygon.io API key or enable demo mode.');
     }
+    // Official Polygon.io docs show 'apiKey' with capital K
     return new HttpParams().set('apiKey', this.apiKey);
   }
+
 
   private handleError(error: any): Observable<never> {
     console.error('Polygon API Error:', error);
@@ -139,16 +141,34 @@ export class StocksService {
 
   // Get snapshot of a ticker
   getSnapshot(ticker: string): Observable<SnapshotResponse> {
+    console.log(`StocksService: Getting snapshot for ${ticker}, demo mode: ${this.demoMode}`); // Debug
+    
     if (this.demoMode) {
+      console.log('StocksService: Using demo data'); // Debug
       return this.getDemoSnapshot(ticker);
     }
 
-    const url = `${this.BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`;
+    if (!this.apiKey) {
+      console.error('StocksService: No API key configured');
+      return throwError(() => new Error('No Polygon.io API key configured. Please set your API key in the environment or enable demo mode.'));
+    }
+
+    const url = `${this.BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers/${ticker.toUpperCase()}`;
     const params = this.getApiParams();
 
+    console.log(`StocksService: Making API call to ${url}?${params.toString()}`); // Debug
+    console.log(`StocksService: Full URL will be: ${url}?${params.toString()}`); // Debug
+
+    // Use query parameter authentication as per Polygon.io docs
     return this.http.get<SnapshotResponse>(url, { params }).pipe(
-      tap(data => this.emitStockData('snapshot', ticker, data)),
-      catchError(this.handleError)
+      tap(data => {
+        console.log('StocksService: API response received:', data); // Debug
+        this.emitStockData('snapshot', ticker, data);
+      }),
+      catchError(error => {
+        console.error('StocksService: API call failed:', error); // Debug
+        return this.handleError(error);
+      })
     );
   }
 
@@ -302,45 +322,75 @@ export class StocksService {
   }
 
   private getDemoSnapshot(ticker: string): Observable<SnapshotResponse> {
+    console.log(`StocksService: Generating demo snapshot for ${ticker}`); // Debug
+    
     const basePrice = this.getRandomBasePrice(ticker);
     const dayChange = (Math.random() - 0.5) * 10;
     const minuteChange = (Math.random() - 0.5) * 0.5;
+    const currentPrice = basePrice + dayChange;
     
     const response: SnapshotResponse = {
       status: 'OK',
+      request_id: `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ticker: {
         ticker: ticker.toUpperCase(),
         day: {
-          o: basePrice,
-          h: basePrice + Math.random() * 5,
-          l: basePrice - Math.random() * 5,
-          c: basePrice + dayChange,
-          v: Math.floor(Math.random() * 10000000),
-          vw: basePrice + dayChange / 2
+          o: parseFloat(basePrice.toFixed(2)),
+          h: parseFloat((basePrice + Math.random() * 5).toFixed(2)),
+          l: parseFloat((basePrice - Math.random() * 5).toFixed(2)),
+          c: parseFloat(currentPrice.toFixed(2)),
+          v: Math.floor(Math.random() * 10000000) + 1000000,
+          vw: parseFloat((basePrice + dayChange / 2).toFixed(2))
         },
         min: {
-          av: basePrice + dayChange,
+          av: parseFloat(currentPrice.toFixed(2)),
           t: Date.now(),
-          n: Math.floor(Math.random() * 100),
-          o: basePrice + dayChange,
-          h: basePrice + dayChange + minuteChange,
-          l: basePrice + dayChange - minuteChange,
-          c: basePrice + dayChange + minuteChange / 2,
-          v: Math.floor(Math.random() * 100000),
-          vw: basePrice + dayChange
+          n: Math.floor(Math.random() * 100) + 50,
+          o: parseFloat((currentPrice - minuteChange).toFixed(2)),
+          h: parseFloat((currentPrice + Math.abs(minuteChange)).toFixed(2)),
+          l: parseFloat((currentPrice - Math.abs(minuteChange)).toFixed(2)),
+          c: parseFloat(currentPrice.toFixed(2)),
+          v: Math.floor(Math.random() * 100000) + 10000,
+          vw: parseFloat(currentPrice.toFixed(2))
         },
         prevDay: {
-          o: basePrice - 2,
-          h: basePrice + 3,
-          l: basePrice - 3,
-          c: basePrice,
-          v: Math.floor(Math.random() * 10000000),
-          vw: basePrice
+          o: parseFloat((basePrice - 2).toFixed(2)),
+          h: parseFloat((basePrice + 3).toFixed(2)),
+          l: parseFloat((basePrice - 3).toFixed(2)),
+          c: parseFloat(basePrice.toFixed(2)),
+          v: Math.floor(Math.random() * 10000000) + 1000000,
+          vw: parseFloat(basePrice.toFixed(2))
         },
-        todaysChange: dayChange,
-        todaysChangePerc: (dayChange / basePrice) * 100
+        lastQuote: {
+          ask: parseFloat((currentPrice + 0.02).toFixed(2)),
+          ask_size: Math.floor(Math.random() * 1000) + 100,
+          bid: parseFloat((currentPrice - 0.02).toFixed(2)),
+          bid_size: Math.floor(Math.random() * 1000) + 100,
+          last_quote: {
+            ask: parseFloat((currentPrice + 0.02).toFixed(2)),
+            ask_size: Math.floor(Math.random() * 1000) + 100,
+            bid: parseFloat((currentPrice - 0.02).toFixed(2)),
+            bid_size: Math.floor(Math.random() * 1000) + 100,
+            exchange: 4, // NASDAQ
+            timestamp: Date.now()
+          }
+        },
+        lastTrade: {
+          conditions: [12],
+          exchange: 4,
+          price: parseFloat(currentPrice.toFixed(2)),
+          sip_timestamp: Date.now(),
+          size: Math.floor(Math.random() * 1000) + 100,
+          timestamp: Date.now()
+        },
+        updated: Date.now(),
+        todaysChange: parseFloat(dayChange.toFixed(2)),
+        todaysChangePerc: parseFloat(((dayChange / basePrice) * 100).toFixed(2)),
+        fmv: parseFloat((currentPrice + (Math.random() - 0.5) * 0.5).toFixed(2))
       }
     };
+    
+    console.log('StocksService: Demo response generated:', response); // Debug
     
     return of(response).pipe(
       tap(data => this.emitStockData('snapshot', ticker, data))

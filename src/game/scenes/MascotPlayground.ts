@@ -188,6 +188,7 @@ export class MascotPlayground extends Scene {
     }
 
     changeScene() {
+        this.scene.stop('MascotPlayground');
         this.scene.start('MainMenu');
     }
 
@@ -387,6 +388,16 @@ export class MascotPlayground extends Scene {
         
         // Remove tint
         targetMascot.clearTint();
+    }
+    
+    private handleStockData(data: any) {
+        // Handle incoming stock data
+        console.log('Stock data received:', data);
+    }
+    
+    private handleStockError(error: any) {
+        // Handle stock API errors
+        console.log('Stock API error:', error);
     }
     
 }

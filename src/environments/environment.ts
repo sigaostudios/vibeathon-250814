@@ -1,5 +1,8 @@
+// Import the local environment file directly
+import { environment as localEnvironment } from './environment.local';
+
 export const environment = {
   production: false,
-  polygonApiKey: '', // Add your Polygon.io API key here
-  polygonApiUrl: 'https://api.polygon.io'
+  polygonApiKey: localEnvironment.polygonApiKey || '',
+  polygonApiUrl: localEnvironment.polygonApiUrl || 'https://api.polygon.io'
 };

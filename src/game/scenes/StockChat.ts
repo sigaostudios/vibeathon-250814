@@ -52,7 +52,7 @@ export class StockChat extends Scene {
             });
         }
         this.mascot.play('orb-glow');
-        this.mascot.setScale(1.2); // Slightly larger for conversation
+        this.mascot.setScale(1); // Match the original mascot size
         this.mascot.setDepth(100);
         
         // Start mascot idle animation
@@ -83,6 +83,13 @@ export class StockChat extends Scene {
 
         // Signal scene is ready
         EventBus.emit('current-scene-ready', this);
+        
+        // Focus the game canvas for keyboard input with multiple approaches
+        this.time.delayedCall(100, () => {
+            this.game.canvas.focus();
+            this.game.canvas.setAttribute('tabindex', '0'); // Make focusable
+            console.log('StockChat: Canvas focused, tabindex set'); // Debug
+        });
     }
     
     private startMascotIdle() {
@@ -145,7 +152,7 @@ export class StockChat extends Scene {
         this.chatContainer.setDepth(200);
         
         // Chat prompt text
-        this.chatPromptText = this.add.text(0, -80, 'Ask me about stocks and press ENTER:', {
+        this.chatPromptText = this.add.text(0, -80, 'Ask me about stocks and press ENTER or click SEARCH:', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#2c3e50',
@@ -156,9 +163,19 @@ export class StockChat extends Scene {
         }).setOrigin(0.5);
         this.chatContainer.add(this.chatPromptText);
         
-        // Input area with background
+        // Input area with background - make it clickable to focus
         const inputBg = this.add.rectangle(0, 0, 400, 45, 0xffffff, 0.95);
         inputBg.setStrokeStyle(2, 0x3498db);
+        inputBg.setInteractive({ useHandCursor: true });
+        inputBg.on('pointerdown', () => {
+            console.log('Input area clicked, focusing canvas'); // Debug
+            this.game.canvas.focus();
+            // Give visual feedback that input is focused
+            inputBg.setStrokeStyle(3, 0x2980b9);
+            this.time.delayedCall(200, () => {
+                inputBg.setStrokeStyle(2, 0x3498db);
+            });
+        });
         this.chatContainer.add(inputBg);
         
         // Current input text display
@@ -169,6 +186,37 @@ export class StockChat extends Scene {
             align: 'center'
         }).setOrigin(0.5);
         this.chatContainer.add(this.chatInputText);
+        
+        // Search button - positioned to the right of input
+        const searchButton = this.add.rectangle(220, 0, 80, 35, 0x27ae60, 0.9)
+            .setStrokeStyle(2, 0x2ecc71)
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                console.log('Search button clicked, current input:', this.currentInput); // Debug
+                if (this.currentInput.trim()) {
+                    this.handleUserInput(this.currentInput.trim());
+                    this.currentInput = '';
+                    this.updateInputDisplay();
+                }
+            })
+            .on('pointerover', () => {
+                searchButton.setFillStyle(0x2ecc71, 1);
+                searchButton.setScale(1.05);
+            })
+            .on('pointerout', () => {
+                searchButton.setFillStyle(0x27ae60, 0.9);
+                searchButton.setScale(1);
+            });
+        
+        const searchText = this.add.text(220, 0, 'SEARCH', {
+            fontFamily: 'Arial',
+            fontSize: '12px',
+            color: '#ffffff',
+            align: 'center',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        this.chatContainer.add([searchButton, searchText]);
         
         // Create quick action buttons
         this.createQuickButtons();
@@ -251,32 +299,54 @@ export class StockChat extends Scene {
         // Stock data handling
         EventBus.on('stock-data-received', this.handleStockData, this);
         EventBus.on('stock-api-error', this.handleStockError, this);
+        EventBus.on('mascot-speak', this.showSpeechBubble, this);
         
         // Clean up on destroy
         this.events.on('destroy', () => {
             EventBus.off('stock-data-received', this.handleStockData, this);
             EventBus.off('stock-api-error', this.handleStockError, this);
+            EventBus.off('mascot-speak', this.showSpeechBubble, this);
         });
     }
     
     private setupKeyboardInput() {
-        // Enable keyboard input
-        this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
-            if (!this.isInputActive) return;
-            
-            if (event.key === 'Backspace') {
-                this.currentInput = this.currentInput.slice(0, -1);
-                this.updateInputDisplay();
-            } else if (event.key === 'Enter') {
-                if (this.currentInput.trim()) {
-                    this.handleUserInput(this.currentInput.trim());
-                    this.currentInput = '';
+        // Focus canvas on any click to ensure keyboard events work
+        this.input.on('pointerdown', () => {
+            this.game.canvas.focus();
+            console.log('StockChat: Canvas focused via click'); // Debug
+        });
+        
+        // Use ONLY the global window keyboard listener for reliable input capture
+        const globalKeyHandler = (event: KeyboardEvent) => {
+            // Only handle if we're in StockChat scene and input is active
+            if (this.scene.isActive() && this.isInputActive) {
+                console.log('StockChat: Key pressed:', event.key); // Debug
+                
+                if (event.key === 'Backspace') {
+                    event.preventDefault();
+                    this.currentInput = this.currentInput.slice(0, -1);
+                    this.updateInputDisplay();
+                } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (this.currentInput.trim()) {
+                        this.handleUserInput(this.currentInput.trim());
+                        this.currentInput = '';
+                        this.updateInputDisplay();
+                    }
+                } else if (event.key.length === 1 && this.currentInput.length < 50) {
+                    event.preventDefault();
+                    this.currentInput += event.key;
                     this.updateInputDisplay();
                 }
-            } else if (event.key.length === 1 && this.currentInput.length < 50) {
-                this.currentInput += event.key;
-                this.updateInputDisplay();
             }
+        };
+        
+        // Add global listener
+        window.addEventListener('keydown', globalKeyHandler);
+        
+        // Clean up on destroy
+        this.events.on('destroy', () => {
+            window.removeEventListener('keydown', globalKeyHandler);
         });
         
         // Cursor blinking
@@ -324,6 +394,8 @@ export class StockChat extends Scene {
     }
     
     private handleUserInput(input: string) {
+        console.log('StockChat: Processing user input:', input); // Debug log
+        
         // Show user input in speech bubble briefly
         this.hideSpeechBubble();
         this.time.delayedCall(200, () => {
@@ -331,29 +403,71 @@ export class StockChat extends Scene {
         });
         
         // Process the query
-        EventBus.emit('stock-query', input);
+        EventBus.emit('process-stock-query', input);
     }
     
     private handleStockData(data: any) {
-        // Display stock data
+        console.log('StockChat: Received stock data:', data); // Debug
+        
+        // Display comprehensive stock data
         if (this.stockDisplay && this.stockText) {
-            let displayText = `${data.symbol}\n`;
-            displayText += `Price: $${data.price}\n`;
-            displayText += `Change: ${data.change > 0 ? '+' : ''}${data.change}\n`;
-            displayText += `Change %: ${data.changePercent > 0 ? '+' : ''}${data.changePercent}%\n`;
-            displayText += `Volume: ${data.volume}`;
+            const symbol = data.symbol || 'N/A';
+            const price = data.price || 0;
+            const change = data.change || 0;
+            const changePercent = data.changePercent || 0;
+            const volume = data.volume || 0;
+            const high = data.high || 0;
+            const low = data.low || 0;
+            const open = data.open || 0;
+            const bid = data.bid || 0;
+            const ask = data.ask || 0;
+            
+            const changeEmoji = change >= 0 ? '📈' : '📉';
+            const changeColor = change >= 0 ? '#27ae60' : '#e74c3c';
+            
+            let displayText = `${symbol} ${changeEmoji}\n\n`;
+            displayText += `Current: $${price.toFixed(2)}\n`;
+            displayText += `Change: ${change >= 0 ? '+' : ''}$${change.toFixed(2)} (${change >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)\n\n`;
+            displayText += `Day Range:\n`;
+            displayText += `High: $${high.toFixed(2)}\n`;
+            displayText += `Low: $${low.toFixed(2)}\n`;
+            displayText += `Open: $${open.toFixed(2)}\n\n`;
+            
+            if (bid > 0 && ask > 0) {
+                displayText += `Quote:\n`;
+                displayText += `Bid: $${bid.toFixed(2)}\n`;
+                displayText += `Ask: $${ask.toFixed(2)}\n`;
+                displayText += `Spread: $${(ask - bid).toFixed(2)}\n\n`;
+            }
+            
+            displayText += `Volume: ${volume.toLocaleString()}`;
+            
+            // Add fair market value if available
+            if (data.fmv) {
+                displayText += `\nFMV: $${data.fmv.toFixed(2)}`;
+            }
+            
+            // Update timestamp
+            if (data.updated) {
+                const updateTime = new Date(data.updated);
+                displayText += `\n\nUpdated: ${updateTime.toLocaleTimeString()}`;
+            }
             
             this.stockText.setText(displayText);
             this.stockDisplay.setVisible(true);
         }
         
-        // Show response in speech bubble
-        const responseText = `${data.symbol} is trading at $${data.price}. ` +
-            `${data.change > 0 ? 'Up' : 'Down'} ${Math.abs(data.changePercent)}% today.`;
+        // Show enhanced response in speech bubble
+        const price = data.price || 0;
+        const change = data.change || 0;
+        const changePercent = data.changePercent || 0;
+        const responseText = `${data.symbol} is trading at $${price.toFixed(2)}. ` +
+            `${change >= 0 ? 'Up' : 'Down'} ${Math.abs(changePercent).toFixed(2)}% today.`;
         this.showSpeechBubble(responseText);
     }
     
     private handleStockError(error: string) {
+        console.log('StockChat: Received stock error:', error); // Debug
         this.showSpeechBubble(`Sorry, I couldn't get that stock data. ${error}`);
         if (this.stockDisplay) {
             this.stockDisplay.setVisible(false);
@@ -361,6 +475,7 @@ export class StockChat extends Scene {
     }
     
     private showSpeechBubble(message: string) {
+        console.log('StockChat: Showing speech bubble with message:', message); // Debug
         if (!this.speechBubble || !this.speechText || !this.speechBg) return;
         
         // Stop any existing speech
@@ -374,8 +489,14 @@ export class StockChat extends Scene {
         // Calculate bubble dimensions
         const textBounds = this.speechText.getBounds();
         const padding = 15;
-        const bubbleWidth = Math.min(textBounds.width + (padding * 2), 300);
+        const bubbleWidth = Math.min(textBounds.width + (padding * 2), 280);
         const bubbleHeight = textBounds.height + (padding * 2);
+        const tailSize = 20;
+        
+        // Position bubble above and to the right of mascot
+        const bubbleX = this.mascot.x + 80;
+        const bubbleY = this.mascot.y - bubbleHeight/2 - tailSize - 20;
+        this.speechBubble.setPosition(bubbleX, bubbleY);
         
         // Clear and redraw bubble
         this.speechBg.clear();
@@ -386,21 +507,22 @@ export class StockChat extends Scene {
         this.speechBg.fillRoundedRect(-bubbleWidth/2, -bubbleHeight/2, bubbleWidth, bubbleHeight, 12);
         this.speechBg.strokeRoundedRect(-bubbleWidth/2, -bubbleHeight/2, bubbleWidth, bubbleHeight, 12);
         
-        // Tail pointing to mascot
-        const tailX = -bubbleWidth/2 + 30;
-        const tailY = bubbleHeight/2 - 5;
+        // Calculate tail position to point directly at mascot
+        const mascotRelativeX = this.mascot.x - bubbleX;
+        const mascotRelativeY = this.mascot.y - bubbleY;
+        
+        // Clamp tail X position to be within bubble bounds
+        const tailX = Math.max(-bubbleWidth/2 + 20, Math.min(bubbleWidth/2 - 20, mascotRelativeX));
+        const tailY = bubbleHeight/2;
+        
+        // Draw tail pointing down to mascot
         this.speechBg.beginPath();
-        this.speechBg.moveTo(tailX, tailY);
-        this.speechBg.lineTo(tailX - 15, tailY + 15);
-        this.speechBg.lineTo(tailX + 15, tailY + 15);
+        this.speechBg.moveTo(tailX - 12, tailY);
+        this.speechBg.lineTo(tailX, tailY + tailSize);
+        this.speechBg.lineTo(tailX + 12, tailY);
         this.speechBg.closePath();
         this.speechBg.fillPath();
         this.speechBg.strokePath();
-        
-        // Position bubble above mascot
-        const bubbleX = this.mascot.x + 120;
-        const bubbleY = this.mascot.y - 80;
-        this.speechBubble.setPosition(bubbleX, bubbleY);
         
         // Update text position
         this.speechText.setPosition(-textBounds.width/2, -textBounds.height/2);
@@ -444,10 +566,12 @@ export class StockChat extends Scene {
     }
     
     private goBack() {
+        this.scene.stop('StockChat');
         this.scene.start('MascotPlayground');
     }
     
     changeScene() {
+        this.scene.stop('StockChat');
         this.scene.start('MascotPlayground');
     }
 }

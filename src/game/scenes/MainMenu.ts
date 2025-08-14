@@ -57,6 +57,7 @@ export class MainMenu extends Scene
             this.logoTween = null;
         }
 
+        this.scene.stop('MainMenu');
         this.scene.start('MascotPlayground');
     }
 

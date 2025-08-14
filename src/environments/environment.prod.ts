@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
-  polygonApiKey: '', // Add your Polygon.io API key here  
+  // In production, use environment variables or secure deployment configs
+  polygonApiKey: process.env['POLYGON_API_KEY'] || '',
   polygonApiUrl: 'https://api.polygon.io'
 };

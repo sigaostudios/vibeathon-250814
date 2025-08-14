@@ -13,14 +13,41 @@ export interface MinuteValues extends DayValues {
   n: number;  // Number of items
 }
 
+export interface QuoteValues {
+  ask: number;           // Ask price
+  ask_size: number;      // Ask size
+  bid: number;           // Bid price  
+  bid_size: number;      // Bid size
+  last_quote: {
+    ask: number;
+    ask_size: number;
+    bid: number;
+    bid_size: number;
+    exchange: number;
+    timestamp: number;
+  };
+}
+
+export interface TradeValues {
+  conditions: number[];  // Trade conditions
+  exchange: number;      // Exchange ID
+  price: number;         // Trade price
+  sip_timestamp: number; // SIP timestamp  
+  size: number;          // Trade size
+  timestamp: number;     // Trade timestamp
+}
+
 export interface Snapshot {
   ticker: string;
   day?: DayValues;
   min?: MinuteValues;
   prevDay?: DayValues;
+  lastQuote?: QuoteValues;
+  lastTrade?: TradeValues;
   updated?: number;
   todaysChange?: number;
   todaysChangePerc?: number;
+  fmv?: number;         // Fair market value (optional, plan-dependent)
 }
 
 export interface SnapshotResponse {
