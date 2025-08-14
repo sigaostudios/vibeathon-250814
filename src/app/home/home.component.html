@@ -12,8 +12,75 @@
             <button class="btn" [disabled]="!canToggleMovement" (click)="toggleMovement()">Toggle Movement</button>
             <button class="btn" [disabled]="!canAddSprite" (click)="addSprite()">Add New Sprite</button>
             <button class="btn btn-news" (click)="goToNews()">📰 News Hub</button>
+            <button class="btn btn-stocks" [class.active]="stockChatActive" (click)="toggleStockChat()">💬 Stocks</button>
             <a routerLink="/config" class="btn btn-secondary">Game Configuration</a>
         </div>
+        
+        <!-- Scene Navigation -->
+        <div class="scene-controls">
+            <h4>Scenes</h4>
+            <div class="scene-grid">
+                <button class="btn btn-scene" 
+                        [disabled]="currentSceneKey === 'MainMenu'" 
+                        (click)="switchToMainMenu()">
+                    🏠 Main Menu
+                </button>
+                <button class="btn btn-scene" 
+                        [disabled]="currentSceneKey === 'MascotPlayground'" 
+                        (click)="switchToMascotScene()">
+                    🎮 Mascot Scene
+                </button>
+                <button class="btn btn-scene" 
+                        [disabled]="currentSceneKey === 'WeatherPlayground'" 
+                        (click)="switchToWeatherScene()">
+                    🌤️ Weather Scene
+                </button>
+            </div>
+        </div>
+        <!-- Location Selector - Only show in Weather Scene -->
+        <div class="location-selector" *ngIf="isWeatherScene">
+            <h4>Set Location</h4>
+            
+            <div class="location-input-stack">
+                <div class="input-group">
+                    <label>City</label>
+                    <input type="text" 
+                           [(ngModel)]="cityInput"
+                           placeholder="e.g., Hoover"
+                           (keyup.enter)="setLocationFromInputs()"
+                           [disabled]="isSettingLocation"
+                           class="location-field">
+                </div>
+                
+                <div class="input-group">
+                    <label>State</label>
+                    <input type="text" 
+                           [(ngModel)]="stateInput"
+                           placeholder="e.g., AL"
+                           (keyup.enter)="setLocationFromInputs()"
+                           [disabled]="isSettingLocation"
+                           class="location-field">
+                </div>
+                
+                <button (click)="setLocationFromInputs()" 
+                        [disabled]="isSettingLocation || !cityInput.trim() || !stateInput.trim()"
+                        class="btn btn-location">
+                    {{ isSettingLocation ? 'Setting...' : 'Set Location' }}
+                </button>
+            </div>
+            
+            <div class="location-error" *ngIf="locationError">{{ locationError }}</div>
+        </div>
+
+        <!-- Weather Info - Only show in Weather Scene -->
+        <div class="weather-info" *ngIf="currentWeather && isWeatherScene">
+            <h4>Current Weather</h4>
+            <div class="weather-display">
+                <span class="weather-condition">{{ currentWeather | titlecase }}</span>
+                <span class="weather-location" *ngIf="weatherLocation">{{ weatherLocation }}</span>
+            </div>
+        </div>
+        
         <div class="sprite-position">
             <div class="label">Sprite Position</div>
             <pre>{{ spritePosition | json }}</pre>

@@ -1,6 +1,8 @@
 import { Boot } from './scenes/Boot';
 import { MascotPlayground } from './scenes/MascotPlayground';
 import { MainMenu } from './scenes/MainMenu';
+import { StockChat } from './scenes/StockChat';
+import { WeatherPlayground } from './scenes/WeatherPlayground';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { NewsScene } from './scenes/NewsScene';
@@ -18,7 +20,9 @@ const config: Phaser.Types.Core.GameConfig = {
         Preloader,
         MainMenu,
         MascotPlayground,
-        NewsScene
+        NewsScene,
+        StockChat,
+        WeatherPlayground
     ]
 };
 
