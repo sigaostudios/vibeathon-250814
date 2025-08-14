@@ -63,11 +63,7 @@ export class Preloader extends Scene
         
         // Airplane sprite for flight tracking
         this.load.svg('airplane', 'sprites/airplane.svg', { width: 32, height: 32 });
-        // Background music + Orb SFX
-        this.load.audio('bgm', 'sounds/bg.mp3');
-        this.load.audio('orb1', 'sounds/orbsound1.mp3');
-        this.load.audio('orb2', 'sounds/orbsound2.wav');
-        this.load.audio('orb3', 'sounds/orbsound3.wav');
+        // Audio files removed: bark1, bg, orbsounds
         
         // Woop woop woop sound for Brandon's flip
         this.load.audio('woop-woop', 'sounds/11L-a_woop_woop_woop_sou-1755200966596.mp3');
