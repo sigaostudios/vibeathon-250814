@@ -91,8 +91,10 @@ export class MascotPlayground extends Scene {
         this.mascot.on('pointerdown', (pointer: any) => {
             // Only trigger on left click (not during drag)
             if (pointer.leftButtonDown() && !pointer.justMoved) {
-                // Reset expression first, then handle dialog
-                this.setBrandonNeutral();
+                // Only reset expression if movie dialog is NOT active
+                if (!this.movieDialogSystem.active) {
+                    this.setBrandonNeutral();
+                }
                 this.handleBrandonClick();
             }
         });
