@@ -54,6 +54,7 @@ export class Preloader extends Scene
         this.load.image('amish-brandon-disapproval', 'sprites/AmishBrandonDisapproval.png');
         this.load.image('amish-brandon-movie', 'sprites/AmishBrandonMovie.png');
         this.load.image('amish-brandon-spy', 'sprites/AmishBrandonSpy.png');
+        this.load.image('amish-brandon-spy-2', 'sprites/AmishBrandonSpy (2).png');
         this.load.image('amish-brandon-face', 'sprites/ABFace.png'); // Alternative neutral face
         
         // Sprite Fanta can
