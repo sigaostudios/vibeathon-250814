@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 export interface FlightData {
   icao24: string;
@@ -33,7 +33,7 @@ export interface NearbyFlight {
 })
 export class FlightTrackingService {
   private readonly OPENSKY_BASE_URL = 'https://opensky-network.org/api/states/all';
-  private readonly OVERHEAD_RADIUS_KM = 5; // 5km radius considered "overhead"
+  private readonly OVERHEAD_RADIUS_KM = 10; // 10km radius considered "overhead" as requested
   
   private nearbyFlightsSubject = new BehaviorSubject<NearbyFlight[]>([]);
   public nearbyFlights$ = this.nearbyFlightsSubject.asObservable();
@@ -47,9 +47,11 @@ export class FlightTrackingService {
     lomax: number
   ): Observable<FlightData[]> {
     const url = `${this.OPENSKY_BASE_URL}?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
+    console.log('🛩️ OpenSky API call:', url);
     
     return this.http.get<any>(url).pipe(
       map(response => {
+        console.log('🛩️ OpenSky response:', response);
         if (!response.states) return [];
         
         return response.states.map((state: any[]) => ({
@@ -72,8 +74,12 @@ export class FlightTrackingService {
         }));
       }),
       catchError(error => {
-        console.error('Error fetching flight data:', error);
-        return [];
+        if (error.status === 429) {
+          console.warn('🛩️ OpenSky API rate limit reached.');
+        } else {
+          console.error('Error fetching flight data from OpenSky:', error);
+        }
+        return of([]); // Return observable array
       })
     );
   }
@@ -85,24 +91,31 @@ export class FlightTrackingService {
     const lomin = userLon - radius;
     const lomax = userLon + radius;
 
-    this.getFlightsInBounds(lamin, lomin, lamax, lomax).subscribe(flights => {
-      const nearbyFlights: NearbyFlight[] = flights
-        .filter(flight => flight.longitude && flight.latitude && !flight.on_ground)
-        .map(flight => {
-          const distance = this.calculateDistance(
-            userLat, userLon,
-            flight.latitude, flight.longitude
-          );
-          
-          return {
-            flight,
-            distance,
-            isOverhead: distance <= this.OVERHEAD_RADIUS_KM
-          };
-        })
-        .filter(nearby => nearby.distance <= 20); // Only flights within 20km
-      
-      this.nearbyFlightsSubject.next(nearbyFlights);
+    this.getFlightsInBounds(lamin, lomin, lamax, lomax).subscribe({
+      next: (flights) => {
+        const nearbyFlights: NearbyFlight[] = flights
+          .filter(flight => flight.longitude && flight.latitude && !flight.on_ground)
+          .map(flight => {
+            const distance = this.calculateDistance(
+              userLat, userLon,
+              flight.latitude, flight.longitude
+            );
+            
+            return {
+              flight,
+              distance,
+              isOverhead: distance <= this.OVERHEAD_RADIUS_KM
+            };
+          })
+          .filter(nearby => nearby.distance <= 20); // Only flights within 20km
+        
+        this.nearbyFlightsSubject.next(nearbyFlights);
+      },
+      error: (error) => {
+        console.error('🛩️ Flight search failed:', error);
+        // Emit empty array to clear loading state
+        this.nearbyFlightsSubject.next([]);
+      }
     });
   }
 
