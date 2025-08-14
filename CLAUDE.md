@@ -45,6 +45,7 @@ Each scene emits `'current-scene-ready'` when initialized for Angular integratio
 - `src/game/`: Phaser game code and scenes
 - `src/game/scenes/`: Individual game scenes
 - `public/assets/`: Static game assets (images, audio)
+- `src/app/services/`: All services for any external communication (database, api, etc)
 
 ## Important Configuration
 
