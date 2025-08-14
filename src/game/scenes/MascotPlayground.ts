@@ -99,6 +99,14 @@ export class MascotPlayground extends Scene {
 
         // Allow Angular to add companion sprites
         const onAddSprite = () => {
+            // Play the woop woop woop sound for Brandon's flip
+            try {
+                this.sound.play('woop-woop', { volume: this.sfxVolume });
+                console.log('🎵 Playing woop woop woop sound for Brandon\'s flip!');
+            } catch (error) {
+                console.warn('Could not play woop-woop sound:', error);
+            }
+            
             // Make Brandon do a flip when sprite is added
             this.tweens.add({
                 targets: this.mascot,

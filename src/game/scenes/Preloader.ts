@@ -68,6 +68,9 @@ export class Preloader extends Scene
         this.load.audio('orb1', 'sounds/orbsound1.mp3');
         this.load.audio('orb2', 'sounds/orbsound2.wav');
         this.load.audio('orb3', 'sounds/orbsound3.wav');
+        
+        // Woop woop woop sound for Brandon's flip
+        this.load.audio('woop-woop', 'sounds/11L-a_woop_woop_woop_sou-1755200966596.mp3');
     }
 
     create ()
