@@ -872,9 +872,16 @@ export class MascotPlayground extends Scene {
         if (!this.isSpyMode && this.mascot) {
             // Store the current texture
             this.originalTexture = this.mascot.texture.key;
-            // Switch to spy texture
-            this.mascot.setTexture('amish-brandon-spy');
+            
+            // Randomly choose between the two spy textures
+            const spyTextures = ['amish-brandon-spy', 'amish-brandon-spy-2'];
+            const randomSpyTexture = Phaser.Math.RND.pick(spyTextures);
+            
+            // Switch to randomly selected spy texture
+            this.mascot.setTexture(randomSpyTexture);
             this.isSpyMode = true;
+            
+            console.log(`Entered spy mode with texture: ${randomSpyTexture}`);
         }
     }
 
