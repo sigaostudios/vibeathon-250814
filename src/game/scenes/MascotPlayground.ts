@@ -69,11 +69,21 @@ export class MascotPlayground extends Scene {
             blendMode: 'ADD'
         } as any) as Phaser.GameObjects.Particles.ParticleEmitter;
 
-        // Mouse / pointer drag demo
+        // Mouse / pointer interaction - both drag and click
         this.mascot.setInteractive({ useHandCursor: true, draggable: true } as any);
         this.input.setDraggable(this.mascot, true);
+        
+        // Drag functionality
         this.input.on('drag', (_pointer: any, obj: any, x: number, y: number) => {
             obj.setPosition(x, y);
+        });
+
+        // Click functionality for movie recommendations
+        this.mascot.on('pointerdown', (pointer: any) => {
+            // Only trigger on left click (not during drag)
+            if (pointer.leftButtonDown() && !pointer.justMoved) {
+                EventBus.emit('brandon-clicked');
+            }
         });
 
         // Allow Angular to add companion sprites

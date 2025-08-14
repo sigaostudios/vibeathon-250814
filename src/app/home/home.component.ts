@@ -1,17 +1,19 @@
 import { Component, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
 import { FlightNotificationComponent } from '../services/flight-tracking/flight-notification.component';
 import { BranchSpyService } from '../services/branch-spy/branch-spy.service';
+import { AIService } from '../services/ai/ai.service';
 
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink, PhaserGameComponent, FlightNotificationComponent],
+    imports: [CommonModule, RouterLink, FormsModule, PhaserGameComponent, FlightNotificationComponent],
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
 })
@@ -26,10 +28,17 @@ export class HomeComponent {
 
     public statusLabel = '—';
 
+    // Movie recommendation dialog properties
+    public showMovieDialog = false;
+    public movieDialogStep: 'asking' | 'waiting' | 'responding' = 'asking';
+    public brandonQuestion = "Well, well... *adjusts hat suspiciously* So you want movie recommendations from me, eh? Keep it down while I think... What kind of moving pictures are you in the mood for? And don't you dare mention anything with too many of those blasted electronic contraptions!";
+    public userMoviePreferences = '';
+    public brandonResponse = '';
+
     // Get the PhaserGame component instance
     phaserRef = viewChild.required(PhaserGameComponent);
 
-    constructor(private branchSpyService: BranchSpyService) {
+    constructor(private branchSpyService: BranchSpyService, private aiService: AIService) {
         // Track the active scene and enable/disable controls accordingly
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.currentSceneKey = scene.scene.key;
@@ -48,6 +57,11 @@ export class HomeComponent {
             }
 
             this.updateStatus();
+        });
+
+        // Listen for Brandon clicks to show movie dialog
+        EventBus.on('brandon-clicked', () => {
+            this.showMovieRecommendationDialog();
         });
     }
 
@@ -111,6 +125,47 @@ export class HomeComponent {
                 EventBus.emit('display-espionage-text', 'Error: ' + error.message);
             }
         });
+    }
+
+    // Movie recommendation dialog methods
+    public showMovieRecommendationDialog(): void {
+        this.showMovieDialog = true;
+        this.movieDialogStep = 'asking';
+        this.userMoviePreferences = '';
+        this.brandonResponse = '';
+    }
+
+    public closeMovieDialog(): void {
+        this.showMovieDialog = false;
+        this.movieDialogStep = 'asking';
+        this.userMoviePreferences = '';
+        this.brandonResponse = '';
+    }
+
+    public submitMoviePreferences(): void {
+        if (!this.userMoviePreferences.trim()) {
+            return;
+        }
+
+        this.movieDialogStep = 'waiting';
+        
+        this.aiService.askBrandonForMovieRecommendations(this.userMoviePreferences).subscribe({
+            next: (response) => {
+                this.brandonResponse = response;
+                this.movieDialogStep = 'responding';
+            },
+            error: (error) => {
+                console.error('Error getting Brandon movie recommendations:', error);
+                this.brandonResponse = "Bah! *mutters angrily* My poop sock is smarter than this contraption! The electronic talking box isn't working right now. Try again later, and KEEP IT DOWN while you're at it!";
+                this.movieDialogStep = 'responding';
+            }
+        });
+    }
+
+    public askAnotherQuestion(): void {
+        this.movieDialogStep = 'asking';
+        this.userMoviePreferences = '';
+        this.brandonResponse = '';
     }
 
     private updateStatus(): void {
