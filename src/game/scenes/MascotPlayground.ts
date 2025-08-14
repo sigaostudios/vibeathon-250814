@@ -21,6 +21,7 @@ export class MascotPlayground extends Scene {
     private flightTexts: Phaser.GameObjects.Text[] = [];
     private airplaneSprites: Phaser.GameObjects.Sprite[] = [];
     private flightData: Map<Phaser.GameObjects.Sprite, any> = new Map();
+    private activeFlightCount = 0;
     private movieDialogSystem!: MovieDialogSystem;
     private brandonSpeechBubble?: Phaser.GameObjects.Container;
 
@@ -511,20 +512,39 @@ export class MascotPlayground extends Scene {
     private displayOverheadFlights(flightTexts: string[]) {
         // Clear any existing flight displays
         this.clearOverheadFlights();
+        
+        // Set active flight count
+        this.activeFlightCount = flightTexts.length;
 
         // Create airplane sprites for each overhead flight
         flightTexts.forEach((text, index) => {
             // Parse flight data from the text string
             const flightInfo = this.parseFlightInfo(text);
             
+            // Calculate realistic positioning based on altitude
+            const altitude = this.parseAltitude(flightInfo.altitude);
+            const speed = this.parseSpeed(flightInfo.speed);
+            
             // Create airplane sprite
             const startX = -50; // Start off-screen left
             const endX = this.scale.width + 50; // End off-screen right
-            const y = 100 + (index * 60); // Different altitudes for multiple flights
             
-            const airplane = this.add.sprite(startX, y, 'airplane');
-            airplane.setScale(1.5);
-            airplane.setDepth(200);
+            // Y position based on altitude (higher altitude = higher on screen)
+            // Map altitude from 0-40,000ft to screen positions 50-250px
+            const minY = 50;
+            const maxY = 250;
+            const minAlt = 0;
+            const maxAlt = 40000;
+            const y = maxY - ((altitude - minAlt) / (maxAlt - minAlt)) * (maxY - minY);
+            const clampedY = Math.max(minY, Math.min(maxY, y || (100 + index * 50)));
+            
+            // Scale based on altitude (higher planes appear smaller/more distant)
+            const baseScale = 1.5;
+            const altitudeScale = Math.max(0.8, Math.min(2.0, baseScale - (altitude / 50000)));
+            
+            const airplane = this.add.sprite(startX, clampedY, 'airplane');
+            airplane.setScale(altitudeScale);
+            airplane.setDepth(200 - altitude / 1000); // Higher planes render behind lower ones
             airplane.setInteractive({ useHandCursor: true });
             
             // Store flight data with the sprite
@@ -538,28 +558,53 @@ export class MascotPlayground extends Scene {
             // Add hover effect
             airplane.on('pointerover', () => {
                 airplane.setTint(0xffff00); // Yellow tint on hover
-                airplane.setScale(1.8);
+                airplane.setScale(altitudeScale * 1.2);
             });
             
             airplane.on('pointerout', () => {
                 airplane.clearTint();
-                airplane.setScale(1.5);
+                airplane.setScale(altitudeScale);
             });
 
+            // Calculate realistic flight duration based on speed
+            // Assume screen width represents ~20 miles, calculate time for 30-second base duration
+            const screenWidthMiles = 20;
+            const baseDurationMs = 30000; // 30 seconds
+            const speedMph = speed || 300; // Default to 300 mph if no speed
+            
+            // Duration inversely proportional to speed
+            // Faster planes take less time to cross screen
+            const duration = Math.max(10000, Math.min(60000, baseDurationMs * (300 / speedMph)));
+            
+            // Add slight random delay to prevent synchronized movement
+            const delay = index * 500 + Math.random() * 2000;
+            
             // Animate airplane flying across screen
-            this.tweens.add({
-                targets: airplane,
-                x: endX,
-                duration: 8000 + (index * 1000), // Slightly staggered timing
-                ease: 'Linear',
-                onComplete: () => {
-                    airplane.destroy();
-                    this.flightData.delete(airplane);
-                    const spriteIndex = this.airplaneSprites.indexOf(airplane);
-                    if (spriteIndex > -1) {
-                        this.airplaneSprites.splice(spriteIndex, 1);
+            this.time.delayedCall(delay, () => {
+                this.tweens.add({
+                    targets: airplane,
+                    x: endX,
+                    duration: duration,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        airplane.destroy();
+                        this.flightData.delete(airplane);
+                        const spriteIndex = this.airplaneSprites.indexOf(airplane);
+                        if (spriteIndex > -1) {
+                            this.airplaneSprites.splice(spriteIndex, 1);
+                        }
+                        
+                        // Decrement active flight count
+                        this.activeFlightCount--;
+                        
+                        // If all flights are done, clear the UI
+                        if (this.activeFlightCount <= 0) {
+                            this.time.delayedCall(2000, () => { // 2 second delay
+                                EventBus.emit('clear-flight-tracking-ui');
+                            });
+                        }
                     }
-                }
+                });
             });
 
             this.airplaneSprites.push(airplane);
@@ -592,14 +637,15 @@ export class MascotPlayground extends Scene {
             }
         });
         this.airplaneSprites = [];
+        this.activeFlightCount = 0;
     }
 
     private parseFlightInfo(flightText: string): any {
-        // Parse the flight text: "Flight Overhead: [callsign] | [speed] | [altitude] | From: [country]"
+        // Parse the flight text: "Flight: [callsign] | Speed: [speed] | Height: [altitude] | From: [country]"
         const parts = flightText.split('|');
-        const callsignPart = parts[0]?.replace('Flight Overhead: ', '').trim();
-        const speedPart = parts[1]?.trim();
-        const altitudePart = parts[2]?.trim();
+        const callsignPart = parts[0]?.replace('Flight: ', '').trim();
+        const speedPart = parts[1]?.replace('Speed: ', '').trim();
+        const altitudePart = parts[2]?.replace('Height: ', '').trim();
         const countryPart = parts[3]?.replace('From: ', '').trim();
 
         return {
@@ -611,13 +657,40 @@ export class MascotPlayground extends Scene {
         };
     }
 
+    private parseSpeed(speedText: string): number {
+        // Extract numeric value from speed text like "450 mph" or "N/A"
+        if (!speedText || speedText === 'N/A') return 300; // Default speed
+        const match = speedText.match(/(\d+)/);
+        return match ? parseInt(match[1]) : 300;
+    }
+
+    private parseAltitude(altitudeText: string): number {
+        // Extract numeric value from altitude text like "6.2 miles" or "35000 ft"
+        if (!altitudeText || altitudeText === 'N/A') return 35000; // Default altitude
+        
+        const match = altitudeText.match(/([\d.]+)/);
+        if (!match) return 35000;
+        
+        const value = parseFloat(match[1]);
+        
+        // Convert miles to feet if needed
+        if (altitudeText.includes('mile')) {
+            return value * 5280; // Convert miles to feet
+        } else if (altitudeText.includes('ft')) {
+            return value;
+        }
+        
+        // Default assumption is feet
+        return value;
+    }
+
     private showFlightDetails(flightInfo: any) {
         // Remove any existing flight detail display
         if (this.espionageText) {
             this.espionageText.destroy();
         }
 
-        const detailText = `✈️ ${flightInfo.callsign}\n🚀 Speed: ${flightInfo.speed}\n📏 Altitude: ${flightInfo.altitude}\n🌍 From: ${flightInfo.country}`;
+        const detailText = `✈️ ${flightInfo.callsign}\n🚀 Speed: ${flightInfo.speed}\n📏 Altitude: ${flightInfo.altitude}\n🌍 From: ${flightInfo.country}\n\n[Click anywhere to close]`;
 
         // Create flight detail popup
         this.espionageText = this.add.text(512, 300, detailText, {
@@ -627,26 +700,18 @@ export class MascotPlayground extends Scene {
             stroke: '#000000',
             strokeThickness: 4,
             align: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: { x: 20, y: 15 }
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            padding: { x: 25, y: 20 }
         }).setOrigin(0.5).setDepth(300);
 
-        // Add fade-in effect
-        this.espionageText.setAlpha(0);
-        this.tweens.add({
-            targets: this.espionageText,
-            alpha: 1,
-            duration: 500,
-            ease: 'Power2'
-        });
-
-        // Auto-hide after 5 seconds
-        this.time.delayedCall(5000, () => {
+        // Make the popup interactive and clickable to close
+        this.espionageText.setInteractive({ useHandCursor: true });
+        this.espionageText.on('pointerdown', () => {
             if (this.espionageText) {
                 this.tweens.add({
                     targets: this.espionageText,
                     alpha: 0,
-                    duration: 500,
+                    duration: 300,
                     ease: 'Power2',
                     onComplete: () => {
                         if (this.espionageText) {
@@ -657,6 +722,17 @@ export class MascotPlayground extends Scene {
                 });
             }
         });
+
+        // Add fade-in effect
+        this.espionageText.setAlpha(0);
+        this.tweens.add({
+            targets: this.espionageText,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // No auto-hide - stays until user clicks
     }
 
     private handleBrandonClick() {
