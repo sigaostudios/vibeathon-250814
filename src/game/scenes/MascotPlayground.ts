@@ -26,6 +26,9 @@ export class MascotPlayground extends Scene {
     private brandonSpeechBubble?: Phaser.GameObjects.Container;
     private isSpyMode = false;
     private originalTexture = 'amish-brandon';
+    private isFlightAttendantMode = false;
+    private preFlightTexture = 'amish-brandon-money';
+    private airlineFoodText?: Phaser.GameObjects.Text;
 
     constructor() {
         super('MascotPlayground');
@@ -739,6 +742,9 @@ export class MascotPlayground extends Scene {
             this.espionageText.destroy();
         }
 
+        // Switch Brandon to flight attendant mode
+        this.enterFlightAttendantMode();
+
         const detailText = `✈️ ${flightInfo.callsign}\n🚀 Speed: ${flightInfo.speed}\n📏 Altitude: ${flightInfo.altitude}\n🌍 From: ${flightInfo.country}\n\n[Click anywhere to close]`;
 
         // Create flight detail popup
@@ -757,6 +763,9 @@ export class MascotPlayground extends Scene {
         this.espionageText.setInteractive({ useHandCursor: true });
         this.espionageText.on('pointerdown', () => {
             if (this.espionageText) {
+                // Exit flight attendant mode when closing flight details
+                this.exitFlightAttendantMode();
+                
                 this.tweens.add({
                     targets: this.espionageText,
                     alpha: 0,
@@ -908,6 +917,99 @@ export class MascotPlayground extends Scene {
             // Switch back to original texture
             this.mascot.setTexture(this.originalTexture);
             this.isSpyMode = false;
+        }
+    }
+
+    private enterFlightAttendantMode() {
+        if (!this.isFlightAttendantMode && this.mascot) {
+            // Store the current texture before switching
+            this.preFlightTexture = this.mascot.texture.key;
+            // Switch to flight attendant texture
+            this.mascot.setTexture('amish-brandon-flight-attendant');
+            this.isFlightAttendantMode = true;
+            console.log('Brandon is now a flight attendant!');
+            
+            // Show the airline food joke
+            this.showAirlineFoodJoke();
+        }
+    }
+
+    private exitFlightAttendantMode() {
+        if (this.isFlightAttendantMode && this.mascot) {
+            // Hide the airline food joke
+            this.hideAirlineFoodJoke();
+            
+            // Switch back to the texture Brandon had before becoming flight attendant
+            this.mascot.setTexture(this.preFlightTexture);
+            this.isFlightAttendantMode = false;
+            console.log(`Brandon switched back to ${this.preFlightTexture}`);
+        }
+    }
+
+    private showAirlineFoodJoke() {
+        // Remove any existing airline food text
+        if (this.airlineFoodText) {
+            this.airlineFoodText.destroy();
+        }
+
+        // Create the joke text positioned above Brandon
+        this.airlineFoodText = this.add.text(this.mascot.x, this.mascot.y - 200, "What's the deal with airline food?", {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center',
+            backgroundColor: 'rgba(0, 100, 200, 0.8)',
+            padding: { x: 15, y: 10 }
+        }).setOrigin(0.5).setDepth(350); // Higher depth than flight info popup (300)
+
+        // Add bounce-in animation
+        this.airlineFoodText.setScale(0);
+        this.tweens.add({
+            targets: this.airlineFoodText,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+
+        // Start the continuous position update
+        this.updateAirlineFoodPosition();
+    }
+
+    private updateAirlineFoodPosition() {
+        if (this.airlineFoodText && this.mascot && this.isFlightAttendantMode) {
+            // Update position to stay above Brandon
+            this.airlineFoodText.setPosition(this.mascot.x, this.mascot.y - 200);
+            
+            // Continue updating on next frame
+            this.time.delayedCall(16, () => { // ~60fps updates
+                this.updateAirlineFoodPosition();
+            });
+        }
+    }
+
+    private hideAirlineFoodJoke() {
+        if (this.airlineFoodText) {
+            // Stop any active tweens
+            this.tweens.killTweensOf(this.airlineFoodText);
+            
+            // Animate out
+            this.tweens.add({
+                targets: this.airlineFoodText,
+                alpha: 0,
+                scaleX: 0,
+                scaleY: 0,
+                duration: 300,
+                ease: 'Back.easeIn',
+                onComplete: () => {
+                    if (this.airlineFoodText) {
+                        this.airlineFoodText.destroy();
+                        this.airlineFoodText = undefined;
+                    }
+                }
+            });
         }
     }
 }
