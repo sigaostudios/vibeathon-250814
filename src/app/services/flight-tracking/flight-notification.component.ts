@@ -1,20 +1,22 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { FlightTrackingService, NearbyFlight } from './flight-tracking.service';
-import { GeolocationService, UserLocation } from './geolocation.service';
+import { ZipCodeLocationService, ZipCodeLocation } from './zipcode-location.service';
+import { EventBus } from '../../../game/EventBus';
 
 @Component({
   selector: 'app-flight-notification',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="flight-notifications" *ngIf="nearbyFlights.length > 0">
       <div class="notification-header">
         <h4>✈️ Aircraft Nearby</h4>
         <div class="location-status" *ngIf="userLocation">
-          📍 Lat: {{userLocation.latitude | number:'1.4-4'}}, 
-          Lon: {{userLocation.longitude | number:'1.4-4'}}
+          📍 {{userLocation.city}}, {{userLocation.state}} ({{userLocation.zipCode}})
+          <br><small>{{userLocation.latitude | number:'1.4-4'}}, {{userLocation.longitude | number:'1.4-4'}}</small>
         </div>
       </div>
       
@@ -49,8 +51,8 @@ import { GeolocationService, UserLocation } from './geolocation.service';
     </div>
     
     <div class="location-error" *ngIf="locationError">
-      ⚠️ Location access needed to track nearby flights
-      <button class="btn-small" (click)="requestLocation()">Enable Location</button>
+      ⚠️ ZIP code required for flight tracking
+      <a routerLink="/config" class="btn-small">Configure ZIP Code</a>
     </div>
   `,
   styles: [`
@@ -168,14 +170,14 @@ import { GeolocationService, UserLocation } from './geolocation.service';
 })
 export class FlightNotificationComponent implements OnInit, OnDestroy {
   nearbyFlights: NearbyFlight[] = [];
-  userLocation: UserLocation | null = null;
+  userLocation: ZipCodeLocation | null = null;
   locationError = false;
   
   private subscriptions = new Subscription();
 
   constructor(
     private flightService: FlightTrackingService,
-    private geoService: GeolocationService
+    private zipLocationService: ZipCodeLocationService
   ) {}
 
   ngOnInit(): void {
@@ -184,7 +186,6 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
-    this.geoService.stopWatchingPosition();
   }
 
   private async initializeFlightTracking(): Promise<void> {
@@ -192,31 +193,35 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.flightService.nearbyFlights$.subscribe(flights => {
         this.nearbyFlights = flights;
+        
+        // Emit overhead flights to the game
+        const overheadFlights = flights.filter(f => f.isOverhead);
+        if (overheadFlights.length > 0) {
+          this.emitOverheadFlightsToGame(overheadFlights);
+        } else {
+          // Clear any existing flight display when no overhead flights
+          EventBus.emit('clear-overhead-flights');
+        }
       })
     );
 
-    // Subscribe to user location
+    // Subscribe to zip code location
     this.subscriptions.add(
-      this.geoService.userLocation$.subscribe(location => {
+      this.zipLocationService.userLocation$.subscribe(location => {
         this.userLocation = location;
-        this.locationError = false;
+        this.locationError = !location;
+        
+        // Start flight checking when we have a location
+        if (location) {
+          this.flightService.checkForNearbyFlights(location.latitude, location.longitude);
+        }
       })
     );
-
-    // Try to get location
-    const location = await this.geoService.getCurrentPosition();
-    if (!location) {
-      this.locationError = true;
-      return;
-    }
-
-    // Start watching location
-    this.geoService.startWatchingPosition();
 
     // Check for flights every 30 seconds
     this.subscriptions.add(
       interval(30000).subscribe(() => {
-        const currentLocation = this.geoService.getCurrentLocation();
+        const currentLocation = this.zipLocationService.getCurrentLocation();
         if (currentLocation) {
           this.flightService.checkForNearbyFlights(
             currentLocation.latitude,
@@ -226,16 +231,33 @@ export class FlightNotificationComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Initial flight check
-    this.flightService.checkForNearbyFlights(location.latitude, location.longitude);
+    // Check if we already have a location from config
+    const currentLocation = this.zipLocationService.getCurrentLocation();
+    if (currentLocation) {
+      this.flightService.checkForNearbyFlights(currentLocation.latitude, currentLocation.longitude);
+    } else {
+      this.locationError = true;
+    }
   }
 
   requestLocation(): void {
-    this.geoService.getCurrentPosition().then(location => {
-      if (location) {
-        this.locationError = false;
-        this.geoService.startWatchingPosition();
-      }
+    // This now redirects user to configure ZIP code in settings
+    this.locationError = true;
+  }
+
+  private emitOverheadFlightsToGame(overheadFlights: NearbyFlight[]): void {
+    // Format flight information for game display
+    const flightTexts = overheadFlights.map(nearby => {
+      const flight = nearby.flight;
+      const callsign = flight.callsign || 'Unknown';
+      const speed = flight.velocity ? `${Math.round(flight.velocity * 2.237)} mph` : 'N/A'; // Convert m/s to mph
+      const altitude = flight.baro_altitude ? `${Math.round(flight.baro_altitude * 3.281)} ft` : 'N/A'; // Convert m to ft
+      const country = flight.origin_country || 'Unknown';
+      
+      return `Flight Overhead: ${callsign} | ${speed} | ${altitude} | From: ${country}`;
     });
+
+    // Emit to game via EventBus
+    EventBus.emit('display-overhead-flights', flightTexts);
   }
 }
