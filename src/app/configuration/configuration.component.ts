@@ -13,6 +13,7 @@ export interface GameConfig {
     playerName: string;
     githubToken: string;
     groqApiKey: string;
+    zipCode?: string;
 }
 
 @Component({
