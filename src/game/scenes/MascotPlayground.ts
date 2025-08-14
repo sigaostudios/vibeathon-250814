@@ -132,6 +132,9 @@ export class MascotPlayground extends Scene {
         EventBus.on('clear-overhead-flights', this.clearOverheadFlights, this);
         EventBus.on('show-brandon-speech', this.showBrandonSpeech, this);
         EventBus.on('hide-brandon-speech', this.hideBrandonSpeech, this);
+        EventBus.on('brandon-approve-movie', this.setBrandonApproval, this);
+        EventBus.on('brandon-disapprove-movie', this.setBrandonDisapproval, this);
+        EventBus.on('brandon-reset-expression', this.setBrandonNeutral, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -156,6 +159,9 @@ export class MascotPlayground extends Scene {
             EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
             EventBus.off('show-brandon-speech', this.showBrandonSpeech, this);
             EventBus.off('hide-brandon-speech', this.hideBrandonSpeech, this);
+            EventBus.off('brandon-approve-movie', this.setBrandonApproval, this);
+            EventBus.off('brandon-disapprove-movie', this.setBrandonDisapproval, this);
+            EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
             
@@ -173,6 +179,9 @@ export class MascotPlayground extends Scene {
             EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
             EventBus.off('show-brandon-speech', this.showBrandonSpeech, this);
             EventBus.off('hide-brandon-speech', this.hideBrandonSpeech, this);
+            EventBus.off('brandon-approve-movie', this.setBrandonApproval, this);
+            EventBus.off('brandon-disapprove-movie', this.setBrandonDisapproval, this);
+            EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
             
@@ -712,5 +721,23 @@ export class MascotPlayground extends Scene {
                 }
             });
         }
+    }
+
+    private setBrandonApproval() {
+        // Switch to approval texture (using the money texture for now since no approval texture exists)
+        this.mascot.setTexture('amish-brandon-money');
+        console.log('Brandon approves! Switching to money texture');
+    }
+
+    private setBrandonDisapproval() {
+        // Switch to disapproval texture
+        this.mascot.setTexture('amish-brandon-disapproval');
+        console.log('Brandon disapproves! Switching to disapproval texture');
+    }
+
+    private setBrandonNeutral() {
+        // Switch back to neutral/money texture
+        this.mascot.setTexture('amish-brandon-money');
+        console.log('Brandon back to neutral expression');
     }
 }
