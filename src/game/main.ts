@@ -1,6 +1,7 @@
 import { Boot } from './scenes/Boot';
 import { MascotPlayground } from './scenes/MascotPlayground';
 import { MainMenu } from './scenes/MainMenu';
+import { StockChat } from './scenes/StockChat';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 
@@ -16,7 +17,8 @@ const config: Phaser.Types.Core.GameConfig = {
         Boot,
         Preloader,
         MainMenu,
-        MascotPlayground
+        MascotPlayground,
+        StockChat
     ]
 };
 

@@ -11,6 +11,7 @@
             <button class="btn" (click)="changeScene()">Change Scene</button>
             <button class="btn" [disabled]="!canToggleMovement" (click)="toggleMovement()">Toggle Movement</button>
             <button class="btn" [disabled]="!canAddSprite" (click)="addSprite()">Add New Sprite</button>
+            <button class="btn btn-stocks" [class.active]="stockChatActive" (click)="toggleStockChat()">💬 Stocks</button>
             <a routerLink="/config" class="btn btn-secondary">Game Configuration</a>
         </div>
         <div class="sprite-position">

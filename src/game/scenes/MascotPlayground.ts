@@ -15,6 +15,11 @@ export class MascotPlayground extends Scene {
     private music?: Phaser.Sound.BaseSound;
     private musicVolume = 0.04; // very soft
     private sfxVolume = 0.35;   // fairly soft by default
+    private speechBubble?: Phaser.GameObjects.Container;
+    private speechText?: Phaser.GameObjects.Text;
+    private speechBg?: Phaser.GameObjects.Graphics;
+    private speechTween?: Phaser.Tweens.Tween;
+    private isTalking = false;
 
     constructor() {
         super('MascotPlayground');
@@ -97,6 +102,9 @@ export class MascotPlayground extends Scene {
         EventBus.on('add-sprite', onAddSprite);
         EventBus.on('config-loaded', this.applyConfig, this);
         EventBus.on('config-saved', this.applyConfig, this);
+        EventBus.on('stock-data-received', this.handleStockData, this);
+        EventBus.on('stock-api-error', this.handleStockError, this);
+        EventBus.on('mascot-speak', this.showSpeechBubble, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -118,6 +126,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('config-saved', this.applyConfig, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
+            EventBus.off('mascot-speak', this.showSpeechBubble, this);
         });
         this.events.on('destroy', () => {
             EventBus.off('add-sprite', onAddSprite);
@@ -125,6 +134,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('config-saved', this.applyConfig, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
+            EventBus.off('mascot-speak', this.showSpeechBubble, this);
         });
 
         EventBus.emit('current-scene-ready', this);
@@ -151,6 +161,30 @@ export class MascotPlayground extends Scene {
         } else {
             this.scheduleNextOrbSound();
         }
+
+        // Create speech bubble container
+        this.createSpeechBubble();
+    }
+    
+    private createSpeechBubble() {
+        this.speechBubble = this.add.container(0, 0);
+        
+        // Create speech bubble background
+        this.speechBg = this.add.graphics();
+        this.speechBubble.add(this.speechBg);
+        
+        // Create speech text
+        this.speechText = this.add.text(0, 0, '', {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#333333',
+            align: 'center',
+            wordWrap: { width: 300, useAdvancedWrap: true }
+        });
+        this.speechBubble.add(this.speechText);
+        
+        this.speechBubble.setDepth(200);
+        this.speechBubble.setVisible(false);
     }
 
     changeScene() {
@@ -219,4 +253,140 @@ export class MascotPlayground extends Scene {
             this.scheduleNextOrbSound();
         });
     }
+
+    
+    private showSpeechBubble(message: string) {
+        if (!this.speechBubble || !this.speechText || !this.speechBg) return;
+        
+        // Stop any existing speech
+        if (this.speechTween) {
+            this.speechTween.destroy();
+        }
+        
+        // Set the text
+        this.speechText.setText(message);
+        
+        // Calculate bubble dimensions - smaller and more proportional
+        const textBounds = this.speechText.getBounds();
+        const padding = 12; // Smaller padding
+        const bubbleWidth = Math.min(textBounds.width + (padding * 2), 280); // Smaller max width
+        const bubbleHeight = textBounds.height + (padding * 2);
+        const tailHeight = 20;
+        
+        // Position relative to mascot
+        const bubbleX = this.mascot.x + 100; // Position to the right of mascot
+        const bubbleY = this.mascot.y - bubbleHeight - tailHeight;
+        
+        // Draw speech bubble background
+        this.speechBg.clear();
+        this.speechBg.fillStyle(0xffffff, 0.95);
+        this.speechBg.lineStyle(2, 0x333333, 0.8); // Always neutral gray border
+        
+        // Main bubble
+        this.speechBg.fillRoundedRect(-bubbleWidth/2, -bubbleHeight/2, bubbleWidth, bubbleHeight, 15);
+        this.speechBg.strokeRoundedRect(-bubbleWidth/2, -bubbleHeight/2, bubbleWidth, bubbleHeight, 15);
+        
+        // Tail pointing to mascot
+        const tailX = -50; // Point towards mascot
+        const tailY = bubbleHeight/2 - 10;
+        this.speechBg.beginPath();
+        this.speechBg.moveTo(tailX - 15, tailY);
+        this.speechBg.lineTo(tailX + 5, tailY - 10);
+        this.speechBg.lineTo(tailX + 5, tailY + 10);
+        this.speechBg.closePath();
+        this.speechBg.fillPath();
+        this.speechBg.strokePath();
+        
+        // Position the bubble
+        this.speechBubble.setPosition(bubbleX, bubbleY);
+        
+        // Update text wrapping and position
+        this.speechText.setStyle({
+            ...this.speechText.style,
+            wordWrap: { width: bubbleWidth - (padding * 2), useAdvancedWrap: true }
+        });
+        
+        // Re-calculate text bounds after wrapping
+        const newTextBounds = this.speechText.getBounds();
+        this.speechText.setPosition(-newTextBounds.width/2, -newTextBounds.height/2);
+        
+        // Show with animation
+        this.speechBubble.setVisible(true);
+        this.speechBubble.setScale(0);
+        this.speechBubble.setAlpha(0);
+        
+        // Start talking animation for appropriate mascot
+        this.startTalkingAnimation();
+        
+        this.speechTween = this.tweens.add({
+            targets: this.speechBubble,
+            scale: 1,
+            alpha: 1,
+            duration: 300,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Auto-hide after reading time
+                const words = message.split(' ').length;
+                const readingTime = Math.max(4000, (words / 120) * 60 * 1000);
+                
+                this.time.delayedCall(readingTime, () => {
+                    this.hideSpeechBubble();
+                });
+            }
+        });
+        
+        // Also emit response to Angular for chat history
+        EventBus.emit('mascot-response', message);
+    }
+    
+    private hideSpeechBubble() {
+        if (!this.speechBubble || !this.speechTween) return;
+        
+        this.stopTalkingAnimation();
+        
+        this.speechTween = this.tweens.add({
+            targets: this.speechBubble,
+            scale: 0,
+            alpha: 0,
+            duration: 200,
+            ease: 'Power2.easeIn',
+            onComplete: () => {
+                this.speechBubble!.setVisible(false);
+            }
+        });
+    }
+    
+    private startTalkingAnimation() {
+        this.isTalking = true;
+        
+        const targetMascot = this.mascot;
+        
+        // Subtle bounce animation
+        this.tweens.add({
+            targets: targetMascot,
+            scaleY: targetMascot.scaleY * 1.1,
+            duration: 200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Gentle glow effect - keep neutral
+        targetMascot.setTint(0xffffff); // No tint, keep original colors
+    }
+    
+    private stopTalkingAnimation() {
+        this.isTalking = false;
+        
+        const targetMascot = this.mascot;
+        
+        // Stop bounce animation
+        this.tweens.killTweensOf(targetMascot);
+        
+        this.mascot.setScale(1);
+        
+        // Remove tint
+        targetMascot.clearTint();
+    }
+    
 }
