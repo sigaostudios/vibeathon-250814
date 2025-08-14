@@ -15,11 +15,9 @@ windows:
       main-pane-height: 60%
       panes:
           - claude:
-            - cd .
             - claude
           - scratchpad:
-            - cd .
-            - nvim ./scratch/scratchpad.md
+            - nano ./scratch/scratchpad.md
   - stats 📊:
       layout: even-horizontal
       panes:
