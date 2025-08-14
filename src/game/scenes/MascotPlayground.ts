@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { MovieDialogSystem } from '../ui/MovieDialogSystem';
 
 export class MascotPlayground extends Scene {
     camera!: Phaser.Cameras.Scene2D.Camera;
@@ -19,6 +20,7 @@ export class MascotPlayground extends Scene {
     private flightTexts: Phaser.GameObjects.Text[] = [];
     private airplaneSprites: Phaser.GameObjects.Sprite[] = [];
     private flightData: Map<Phaser.GameObjects.Sprite, any> = new Map();
+    private movieDialogSystem!: MovieDialogSystem;
 
     constructor() {
         super('MascotPlayground');
@@ -81,7 +83,7 @@ export class MascotPlayground extends Scene {
         this.mascot.on('pointerdown', (pointer: any) => {
             // Only trigger on left click (not during drag)
             if (pointer.leftButtonDown() && !pointer.justMoved) {
-                EventBus.emit('brandon-clicked');
+                this.handleBrandonClick();
             }
         });
 
@@ -150,6 +152,11 @@ export class MascotPlayground extends Scene {
             EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
+            
+            // Cleanup movie dialog system
+            if (this.movieDialogSystem) {
+                this.movieDialogSystem.destroy();
+            }
         });
         this.events.on('destroy', () => {
             EventBus.off('add-sprite', onAddSprite);
@@ -160,7 +167,15 @@ export class MascotPlayground extends Scene {
             EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
+            
+            // Cleanup movie dialog system
+            if (this.movieDialogSystem) {
+                this.movieDialogSystem.destroy();
+            }
         });
+
+        // Initialize movie dialog system
+        this.movieDialogSystem = new MovieDialogSystem(this);
 
         EventBus.emit('current-scene-ready', this);
 
@@ -444,5 +459,14 @@ export class MascotPlayground extends Scene {
                 });
             }
         });
+    }
+
+    private handleBrandonClick() {
+        console.log('Brandon clicked - starting movie dialog');
+        
+        // Only start dialog if not already active
+        if (!this.movieDialogSystem.active) {
+            this.movieDialogSystem.startDialog(this.mascot);
+        }
     }
 }

@@ -1,7 +1,6 @@
 import { Component, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
@@ -13,7 +12,7 @@ import { AIService } from '../services/ai/ai.service';
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule, PhaserGameComponent, FlightNotificationComponent],
+    imports: [CommonModule, RouterLink, PhaserGameComponent, FlightNotificationComponent],
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
 })
@@ -28,12 +27,6 @@ export class HomeComponent {
 
     public statusLabel = '—';
 
-    // Movie recommendation dialog properties
-    public showMovieDialog = false;
-    public movieDialogStep: 'asking' | 'waiting' | 'responding' = 'asking';
-    public brandonQuestion = "Well, well... *adjusts hat suspiciously* So you want movie recommendations from me, eh? Keep it down while I think... What kind of moving pictures are you in the mood for? And don't you dare mention anything with too many of those blasted electronic contraptions!";
-    public userMoviePreferences = '';
-    public brandonResponse = '';
 
     // Get the PhaserGame component instance
     phaserRef = viewChild.required(PhaserGameComponent);
@@ -59,9 +52,9 @@ export class HomeComponent {
             this.updateStatus();
         });
 
-        // Listen for Brandon clicks to show movie dialog
-        EventBus.on('brandon-clicked', () => {
-            this.showMovieRecommendationDialog();
+        // Listen for movie recommendation requests from Phaser
+        EventBus.on('request-movie-recommendations', (userPreferences: string) => {
+            this.handleMovieRecommendationRequest(userPreferences);
         });
     }
 
@@ -127,45 +120,21 @@ export class HomeComponent {
         });
     }
 
-    // Movie recommendation dialog methods
-    public showMovieRecommendationDialog(): void {
-        this.showMovieDialog = true;
-        this.movieDialogStep = 'asking';
-        this.userMoviePreferences = '';
-        this.brandonResponse = '';
-    }
-
-    public closeMovieDialog(): void {
-        this.showMovieDialog = false;
-        this.movieDialogStep = 'asking';
-        this.userMoviePreferences = '';
-        this.brandonResponse = '';
-    }
-
-    public submitMoviePreferences(): void {
-        if (!this.userMoviePreferences.trim()) {
-            return;
-        }
-
-        this.movieDialogStep = 'waiting';
+    // Handle movie recommendation requests from Phaser scene
+    private handleMovieRecommendationRequest(userPreferences: string): void {
+        console.log('Processing movie recommendation request:', userPreferences);
         
-        this.aiService.askBrandonForMovieRecommendations(this.userMoviePreferences).subscribe({
+        this.aiService.askBrandonForMovieRecommendations(userPreferences).subscribe({
             next: (response) => {
-                this.brandonResponse = response;
-                this.movieDialogStep = 'responding';
+                console.log('AI response received:', response);
+                EventBus.emit('ai-movie-response', response);
             },
             error: (error) => {
                 console.error('Error getting Brandon movie recommendations:', error);
-                this.brandonResponse = "Bah! *mutters angrily* My poop sock is smarter than this contraption! The electronic talking box isn't working right now. Try again later, and KEEP IT DOWN while you're at it!";
-                this.movieDialogStep = 'responding';
+                const errorResponse = "Bah! *mutters angrily* My poop sock is smarter than this contraption! The electronic talking box isn't working right now. Try again later, and KEEP IT DOWN while you're at it!";
+                EventBus.emit('ai-movie-response', errorResponse);
             }
         });
-    }
-
-    public askAnotherQuestion(): void {
-        this.movieDialogStep = 'asking';
-        this.userMoviePreferences = '';
-        this.brandonResponse = '';
     }
 
     private updateStatus(): void {
