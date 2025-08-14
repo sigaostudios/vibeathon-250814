@@ -107,17 +107,88 @@ export class AIService {
 4. Performance improvements
 5. User-facing changes
 6. Configuration or infrastructure changes
+7. WHO made these changes (include author names prominently)
 
-Be concise but informative. Use emojis to make it engaging. Structure your response with clear categories.`;
+IMPORTANT RULES:
+- Be concise but informative
+- Use emojis to make it engaging
+- Structure your response with clear categories
+- ALWAYS include a "👤 Contributors" or "🧑‍💻 Who Made Changes" section prominently showing who made what changes
+- ONLY include sections that have actual content - DO NOT include empty sections or sections that say "no results", "none", "no changes", etc.
+- If a category has no relevant changes, skip that entire section
+- Keep the response focused and concise by excluding empty or irrelevant sections`;
 
     const prompt = `Analyze these git commits and summarize the functional changes that occurred. Focus on what changed from a user and developer perspective:
 
 ${commitData}
 
-Provide a clear, concise summary of the functional changes.`;
+Provide a clear, concise summary of the functional changes. IMPORTANT: Include a prominent section showing WHO made these changes (the authors). Remember: ONLY include sections with actual meaningful content - skip any empty or "no results" sections entirely.`;
 
     console.log('AI Service: Calling analyzeWithGroq');
-    return this.analyzeWithGroq(prompt, systemPrompt);
+    return this.analyzeWithGroq(prompt, systemPrompt).pipe(
+      map(response => this.filterEmptySections(response))
+    );
+  }
+
+  /**
+   * Filters out empty sections from AI response
+   * @param response Raw AI response
+   * @returns Filtered response without empty sections
+   */
+  private filterEmptySections(response: string): string {
+    // Split into lines and filter out sections that indicate no content
+    const lines = response.split('\n');
+    const filteredLines: string[] = [];
+    let skipSection = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].toLowerCase().trim();
+      
+      // Check if this line indicates an empty section
+      const isEmptySection = line.includes('no results') || 
+                            line.includes('no changes') || 
+                            line.includes('none') && (line.includes('features') || line.includes('fixes') || line.includes('changes')) ||
+                            line.includes('n/a') ||
+                            line.includes('not applicable') ||
+                            (line.includes('no ') && (line.includes('new ') || line.includes('bug ') || line.includes('breaking ')));
+      
+      // If this is a section header (starts with emoji or ##), check if it's empty
+      const isSectionHeader = lines[i].match(/^[\s]*[🔥🐛✨⚡👀🔧💥📱🎨🚀⚙️🛠️📊🎯]/);
+      
+      if (isSectionHeader) {
+        // Look ahead to see if this section has content
+        let hasContent = false;
+        for (let j = i + 1; j < lines.length && !lines[j].match(/^[\s]*[🔥🐛✨⚡👀🔧💥📱🎨🚀⚙️🛠️📊🎯]/); j++) {
+          const nextLine = lines[j].toLowerCase().trim();
+          if (nextLine && 
+              !nextLine.includes('no results') && 
+              !nextLine.includes('no changes') && 
+              !nextLine.includes('n/a') &&
+              !nextLine.includes('not applicable') &&
+              !(nextLine.includes('none') && (nextLine.includes('features') || nextLine.includes('fixes') || nextLine.includes('changes')))) {
+            hasContent = true;
+            break;
+          }
+        }
+        skipSection = !hasContent;
+      }
+      
+      if (!skipSection && !isEmptySection) {
+        filteredLines.push(lines[i]);
+      }
+    }
+    
+    // Clean up extra empty lines
+    return filteredLines
+      .filter((line, index, arr) => {
+        // Remove consecutive empty lines
+        if (line.trim() === '') {
+          return index === 0 || index === arr.length - 1 || arr[index - 1].trim() !== '';
+        }
+        return true;
+      })
+      .join('\n')
+      .trim();
   }
 
   /**

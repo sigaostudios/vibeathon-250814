@@ -53,6 +53,14 @@ export class MovieDialogSystem {
         this.targetSprite = targetSprite;
         this.currentStep = 'greeting';
 
+        // Switch Brandon to movie image when dialog starts
+        if (this.scene.textures.exists('amish-brandon-movie')) {
+            targetSprite.setTexture('amish-brandon-movie');
+            console.log('✅ Switched Brandon to movie image');
+        } else {
+            console.warn('❌ amish-brandon-movie texture not found');
+        }
+
         // Show Brandon's greeting above him
         this.speechBubble.show(targetSprite, this.greetingMessage, {
             duration: 0, // Don't auto-hide
@@ -193,7 +201,7 @@ export class MovieDialogSystem {
         this.isActive = false;
         this.currentStep = 'closed';
 
-        // Reset Brandon to neutral expression
+        // Reset Brandon to neutral expression (which will switch him back to default image)
         if (this.targetSprite) {
             this.updateBrandonExpression('neutral');
         }

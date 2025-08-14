@@ -112,6 +112,9 @@ export class HomeComponent implements OnDestroy {
     public engageInEspionage(): void {
         console.log('Espionage activated via Konami code - calling AI summary');
         
+        // Enter spy mode immediately when espionage starts
+        EventBus.emit('enter-spy-mode');
+        
         // Show Brandon's speech bubble while fetching
         EventBus.emit('show-brandon-speech', 'Engaging in super top secret espionage');
         
