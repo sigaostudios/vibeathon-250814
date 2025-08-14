@@ -146,14 +146,73 @@ export class HomeComponent implements OnDestroy {
         this.aiService.askBrandonForMovieRecommendations(userPreferences).subscribe({
             next: (response) => {
                 console.log('AI response received:', response);
+                
+                // Analyze Brandon's response for approval/disapproval
+                this.analyzeBrandonSentiment(response);
+                
                 EventBus.emit('ai-movie-response', response);
             },
             error: (error) => {
                 console.error('Error getting Brandon movie recommendations:', error);
                 const errorResponse = "Bah! *mutters angrily* My poop sock is smarter than this contraption! The electronic talking box isn't working right now. Try again later, and KEEP IT DOWN while you're at it!";
+                
+                // Error responses should show disapproval
+                EventBus.emit('brandon-disapprove-movie');
+                
                 EventBus.emit('ai-movie-response', errorResponse);
             }
         });
+    }
+
+    private analyzeBrandonSentiment(response: string): void {
+        const lowerResponse = response.toLowerCase();
+        
+        // Words that indicate Brandon LOVES the movies
+        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'money', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect'];
+        
+        // Words that indicate Brandon HATES the movies  
+        const disapprovalWords = ['terrible', 'awful', 'disgusting', 'abomination', 'nonsense', 'contraption', 'existential crisis', 'hate', 'horrible', 'stupid', 'ridiculous'];
+        
+        let approvalCount = 0;
+        let disapprovalCount = 0;
+        
+        // Count approval words
+        approvalWords.forEach(word => {
+            if (lowerResponse.includes(word)) {
+                approvalCount++;
+            }
+        });
+        
+        // Count disapproval words  
+        disapprovalWords.forEach(word => {
+            if (lowerResponse.includes(word)) {
+                disapprovalCount++;
+            }
+        });
+        
+        console.log(`Brandon sentiment analysis: ${approvalCount} approval words, ${disapprovalCount} disapproval words`);
+        
+        // Determine Brandon's mood based on word counts
+        if (approvalCount > disapprovalCount && approvalCount > 0) {
+            console.log('Brandon approves of the movie recommendations!');
+            EventBus.emit('brandon-approve-movie');
+            
+            // Reset to neutral after 3 seconds
+            setTimeout(() => {
+                EventBus.emit('brandon-reset-expression');
+            }, 3000);
+        } else if (disapprovalCount > approvalCount && disapprovalCount > 0) {
+            console.log('Brandon disapproves of the movie recommendations!');
+            EventBus.emit('brandon-disapprove-movie');
+            
+            // Reset to neutral after 3 seconds
+            setTimeout(() => {
+                EventBus.emit('brandon-reset-expression');
+            }, 3000);
+        } else {
+            console.log('Brandon is neutral about the recommendations');
+            // Keep current expression
+        }
     }
 
     private updateStatus(): void {
