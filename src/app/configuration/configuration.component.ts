@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { EventBus } from '../../game/EventBus';
 import { StorageService } from '../storage.service';
 
-interface GameConfig {
+export interface GameConfig {
     gameTitle: string;
     soundEnabled: boolean;
     musicVolume: number;
     sfxVolume: number;
     difficulty: 'easy' | 'medium' | 'hard';
     playerName: string;
+    githubToken: string;
 }
 
 @Component({
@@ -27,7 +28,8 @@ export class ConfigurationComponent implements OnInit {
         musicVolume: 70,
         sfxVolume: 80,
         difficulty: 'medium',
-        playerName: 'Player'
+        playerName: 'Player',
+        githubToken: ''
     };
 
     savedMessage = '';
@@ -76,7 +78,8 @@ export class ConfigurationComponent implements OnInit {
             musicVolume: 70,
             sfxVolume: 80,
             difficulty: 'medium',
-            playerName: 'Player'
+            playerName: 'Player',
+            githubToken: ''
         };
         this.saveConfiguration();
     }

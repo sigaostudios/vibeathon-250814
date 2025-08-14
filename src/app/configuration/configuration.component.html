@@ -81,6 +81,17 @@
                         <option value="hard">Hard</option>
                     </select>
                 </div>
+
+                <div class="form-group">
+                    <label for="githubToken">GitHub Token (for private repo access)</label>
+                    <input 
+                        type="password" 
+                        id="githubToken"
+                        [(ngModel)]="config.githubToken"
+                        placeholder="Enter GitHub Personal Access Token"
+                        class="text-input">
+                    <small class="form-hint">Generate at https://github.com/settings/tokens with 'repo' scope</small>
+                </div>
             </div>
         </div>
 

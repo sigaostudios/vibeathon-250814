@@ -15,6 +15,7 @@ export class MascotPlayground extends Scene {
     private music?: Phaser.Sound.BaseSound;
     private musicVolume = 0.04; // very soft
     private sfxVolume = 0.35;   // fairly soft by default
+    private espionageText?: Phaser.GameObjects.Text;
 
     constructor() {
         super('MascotPlayground');
@@ -97,6 +98,7 @@ export class MascotPlayground extends Scene {
         EventBus.on('add-sprite', onAddSprite);
         EventBus.on('config-loaded', this.applyConfig, this);
         EventBus.on('config-saved', this.applyConfig, this);
+        EventBus.on('display-espionage-text', this.displayEspionageText, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -116,6 +118,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('add-sprite', onAddSprite);
             EventBus.off('config-loaded', this.applyConfig, this);
             EventBus.off('config-saved', this.applyConfig, this);
+            EventBus.off('display-espionage-text', this.displayEspionageText, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
         });
@@ -123,6 +126,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('add-sprite', onAddSprite);
             EventBus.off('config-loaded', this.applyConfig, this);
             EventBus.off('config-saved', this.applyConfig, this);
+            EventBus.off('display-espionage-text', this.displayEspionageText, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
         });
@@ -217,6 +221,51 @@ export class MascotPlayground extends Scene {
                 this.sound.play(key, { volume: this.sfxVolume } as any);
             } catch {}
             this.scheduleNextOrbSound();
+        });
+    }
+
+    private displayEspionageText(message: string) {
+        // Remove existing espionage text if any
+        if (this.espionageText) {
+            this.espionageText.destroy();
+        }
+
+        // Create new text object to display the commit message
+        this.espionageText = this.add.text(512, 250, message, {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: 700 }
+        }).setOrigin(0.5).setDepth(200);
+
+        // Add a fade-in effect
+        this.espionageText.setAlpha(0);
+        this.tweens.add({
+            targets: this.espionageText,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // Auto-hide after 10 seconds
+        this.time.delayedCall(10000, () => {
+            if (this.espionageText) {
+                this.tweens.add({
+                    targets: this.espionageText,
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        if (this.espionageText) {
+                            this.espionageText.destroy();
+                            this.espionageText = undefined;
+                        }
+                    }
+                });
+            }
         });
     }
 }
