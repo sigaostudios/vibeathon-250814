@@ -235,7 +235,7 @@ export class HomeComponent implements OnDestroy {
         }
         
         // Regular sentiment analysis if no money detected
-        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect'];
+        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect', 'good', 'solid', 'recommend', 'classic'];
         const disapprovalWords = ['terrible', 'awful', 'disgusting', 'abomination', 'nonsense', 'contraption', 'existential crisis', 'hate', 'horrible', 'stupid', 'ridiculous'];
         
         let approvalCount = 0;
