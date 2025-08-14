@@ -4,6 +4,7 @@ import { map, catchError, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { StorageService } from '../storage.service';
 import { GameConfig } from '../configuration/configuration.component';
+import { AIService } from './ai.service';
 
 export interface CommitInfo {
   message: string;
@@ -30,7 +31,7 @@ export class BranchSpyService {
   private readonly repoName = 'vibeathon-250814';
   private readonly targetBranch = 'prompt-puppies';
   
-  constructor(private storageService: StorageService) { }
+  constructor(private storageService: StorageService, private aiService: AIService) { }
 
   /**
    * Fetches the most recent commit message from the prompt-puppies branch
@@ -205,26 +206,40 @@ export class BranchSpyService {
    * @returns Observable with AI-generated summary
    */
   getAISummaryOfRecentChanges(): Observable<string> {
+    console.log('Starting AI summary analysis...');
     return this.getLastThreeCommitsWithDiffs().pipe(
       switchMap(commits => {
+        console.log('Commits retrieved:', commits.length);
         if (commits.length === 0) {
           return of('No recent commits found to analyze.');
         }
 
-        // Prepare the prompt for AI analysis
-        const commitSummary = commits.map(commit => {
-          const fileChanges = commit.files.map(file => 
-            `- ${file.filename}: ${file.status} (+${file.additions}/-${file.deletions})`
-          ).join('\n');
+        // Prepare detailed commit data for AI analysis
+        const commitData = commits.map(commit => {
+          const fileChanges = commit.files.map(file => {
+            let fileInfo = `- ${file.filename}: ${file.status} (+${file.additions}/-${file.deletions})`;
+            // Include a snippet of the patch for better context (truncated for API limits)
+            if (file.patch) {
+              const patchSnippet = file.patch.split('\n').slice(0, 10).join('\n');
+              fileInfo += `\n  Code changes:\n${patchSnippet}`;
+            }
+            return fileInfo;
+          }).join('\n');
           
-          return `Commit: ${commit.message}\nAuthor: ${commit.author}\nDate: ${commit.date}\nFiles:\n${fileChanges}`;
+          return `COMMIT: ${commit.message}
+AUTHOR: ${commit.author}
+DATE: ${commit.date}
+SHA: ${commit.sha.substring(0, 8)}
+
+FILES MODIFIED:
+${fileChanges}
+
+---`;
         }).join('\n\n');
 
-        const prompt = `Analyze these recent git commits and summarize what functionality changed. Focus on user-facing features, bug fixes, and significant code changes. Be concise but informative:\n\n${commitSummary}`;
-
-        // For now, return a structured summary. In a real implementation, 
-        // you would call an AI service here
-        return this.generateSimpleSummary(commits);
+        // Use the AI service to analyze the commits
+        console.log('Sending to AI service:', commitData.substring(0, 200) + '...');
+        return this.aiService.analyzeCommitChanges(commitData);
       })
     );
   }

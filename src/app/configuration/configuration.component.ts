@@ -12,6 +12,7 @@ export interface GameConfig {
     difficulty: 'easy' | 'medium' | 'hard';
     playerName: string;
     githubToken: string;
+    groqApiKey: string;
 }
 
 @Component({
@@ -29,7 +30,8 @@ export class ConfigurationComponent implements OnInit {
         sfxVolume: 80,
         difficulty: 'medium',
         playerName: 'Player',
-        githubToken: ''
+        githubToken: '',
+        groqApiKey: ''
     };
 
     savedMessage = '';
@@ -79,7 +81,8 @@ export class ConfigurationComponent implements OnInit {
             sfxVolume: 80,
             difficulty: 'medium',
             playerName: 'Player',
-            githubToken: ''
+            githubToken: '',
+            groqApiKey: ''
         };
         this.saveConfiguration();
     }

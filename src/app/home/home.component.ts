@@ -97,10 +97,18 @@ export class HomeComponent {
     }
 
     public engageInEspionage(): void {
+        console.log('Espionage button clicked - calling AI summary');
         // Use the new AI summary functionality instead of just the latest commit
-        this.branchSpyService.getAISummaryOfRecentChanges().subscribe(summary => {
-            // Send the AI summary to the game scene to display
-            EventBus.emit('display-espionage-text', summary);
+        this.branchSpyService.getAISummaryOfRecentChanges().subscribe({
+            next: (summary) => {
+                console.log('Received AI summary:', summary);
+                // Send the AI summary to the game scene to display
+                EventBus.emit('display-espionage-text', summary);
+            },
+            error: (error) => {
+                console.error('Error getting AI summary:', error);
+                EventBus.emit('display-espionage-text', 'Error: ' + error.message);
+            }
         });
     }
 

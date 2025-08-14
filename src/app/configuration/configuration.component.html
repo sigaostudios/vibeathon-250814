@@ -92,6 +92,17 @@
                         class="text-input">
                     <small class="form-hint">Generate at https://github.com/settings/tokens with 'repo' scope</small>
                 </div>
+
+                <div class="form-group">
+                    <label for="groqApiKey">Groq API Key (for AI analysis)</label>
+                    <input 
+                        type="password" 
+                        id="groqApiKey"
+                        [(ngModel)]="config.groqApiKey"
+                        placeholder="Enter Groq API Key"
+                        class="text-input">
+                    <small class="form-hint">Get your free API key at https://console.groq.com/</small>
+                </div>
             </div>
         </div>
 
