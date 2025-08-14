@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, from, forkJoin } from 'rxjs';
-import { map, catchError, switchMap } from 'rxjs/operators';
-import { of } from 'rxjs';
-import { StorageService } from '../storage.service';
+import { Observable, forkJoin, from, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { GameConfig } from '../configuration/configuration.component';
+import { StorageService } from '../storage.service';
 import { AIService } from './ai.service';
 
 export interface CommitInfo {

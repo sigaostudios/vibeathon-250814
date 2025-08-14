@@ -5,12 +5,13 @@ import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
+import { FlightNotificationComponent } from '../services/flight-tracking/flight-notification.component';
 import { BranchSpyService } from '../services/branch-spy.service';
 
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink, PhaserGameComponent],
+    imports: [CommonModule, RouterLink, PhaserGameComponent, FlightNotificationComponent],
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
 })
