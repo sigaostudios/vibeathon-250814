@@ -1,7 +1,6 @@
 import { Component, viewChild, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
@@ -14,7 +13,6 @@ import { WeatherService } from '../services/weather.service';
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterLink, PhaserGameComponent],
     imports: [CommonModule, FormsModule, RouterLink, PhaserGameComponent],
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
