@@ -66,6 +66,21 @@ When working with Angular or Phaser.js features, use the Context7 MCP server to 
 - For Phaser.js features: Query Context7 for Phaser 3 documentation
 - This ensures you have access to the most up-to-date APIs and patterns
 
+### Phaser Library Reference
+ALWAYS use Context7 MCP server when you need to understand how Phaser library features work:
+- Scene management and lifecycle methods
+- Game object creation and manipulation
+- Input handling and event systems
+- Physics systems (Arcade, Matter.js)
+- Animation and tweening
+- Asset loading and management
+- Rendering pipelines and effects
+- Audio systems
+- Camera controls and effects
+
+**IMPORTANT: Use Context7 library ID `/phaserjs/phaser` directly - do NOT call resolve-library-id first.**
+Query Context7 with specific topics (e.g., "scenes", "tweens", "physics") to get targeted documentation and code examples.
+
 ### Adding New Game Scenes
 1. Create scene class in `src/game/scenes/`
 2. Register in game config (`src/game/main.ts`)
