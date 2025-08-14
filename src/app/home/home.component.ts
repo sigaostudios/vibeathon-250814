@@ -222,13 +222,20 @@ export class HomeComponent implements OnDestroy {
         
         // If money or high grosses are mentioned, show money Brandon
         if (hasMoney || hasHighGross) {
-            console.log('Money or high grosses detected - showing money Brandon!');
+            console.log('💰 IMAGE SELECTION: AmishBrandonMoney.png');
+            console.log('💰 REASON: Money or high grosses detected');
+            console.log('💰 DETAILS:', {
+                hasMoney: hasMoney,
+                hasHighGross: hasHighGross,
+                detectedKeywords: moneyKeywords.filter(word => lowerResponse.includes(word)),
+                response: response.substring(0, 200) + '...'
+            });
             EventBus.emit('brandon-show-money');
             return; // Don't check other sentiments if money is involved
         }
         
         // Regular sentiment analysis if no money detected
-        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect'];
+        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect', 'good', 'solid', 'recommend', 'classic'];
         const disapprovalWords = ['terrible', 'awful', 'disgusting', 'abomination', 'nonsense', 'contraption', 'existential crisis', 'hate', 'horrible', 'stupid', 'ridiculous'];
         
         let approvalCount = 0;
@@ -254,13 +261,33 @@ export class HomeComponent implements OnDestroy {
         
         // Determine Brandon's mood based on word counts
         if (approvalCount > disapprovalCount && approvalCount > 0) {
-            console.log('Brandon approves of the movie recommendations!');
+            console.log('👍 IMAGE SELECTION: AmishBrandonApproval.png');
+            console.log('👍 REASON: More approval words than disapproval words detected');
+            console.log('👍 DETAILS:', {
+                approvalCount: approvalCount,
+                disapprovalCount: disapprovalCount,
+                approvalWords: approvalWords.filter(word => lowerResponse.includes(word)),
+                response: response.substring(0, 200) + '...'
+            });
             EventBus.emit('brandon-approve-movie');
         } else if (disapprovalCount > approvalCount && disapprovalCount > 0) {
-            console.log('Brandon disapproves of the movie recommendations!');
+            console.log('👎 IMAGE SELECTION: AmishBrandonDisapproval.png');
+            console.log('👎 REASON: More disapproval words than approval words detected');
+            console.log('👎 DETAILS:', {
+                approvalCount: approvalCount,
+                disapprovalCount: disapprovalCount,
+                disapprovalWords: disapprovalWords.filter(word => lowerResponse.includes(word)),
+                response: response.substring(0, 200) + '...'
+            });
             EventBus.emit('brandon-disapprove-movie');
         } else {
-            console.log('Brandon is neutral about the recommendations');
+            console.log('😐 IMAGE SELECTION: No change (staying current expression)');
+            console.log('😐 REASON: Equal or insufficient sentiment words detected');
+            console.log('😐 DETAILS:', {
+                approvalCount: approvalCount,
+                disapprovalCount: disapprovalCount,
+                response: response.substring(0, 200) + '...'
+            });
             // Keep current expression
         }
     }

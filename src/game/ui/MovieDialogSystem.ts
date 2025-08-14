@@ -3,7 +3,7 @@ import { SpeechBubble } from './SpeechBubble';
 import { TextInputOverlay } from './TextInputOverlay';
 
 export type DialogStep = 'greeting' | 'input' | 'waiting' | 'response' | 'closed';
-export type BrandonExpression = 'neutral' | 'money' | 'disapproval';
+export type BrandonExpression = 'neutral' | 'money' | 'disapproval' | 'approval';
 
 export class MovieDialogSystem {
     private scene: Phaser.Scene;
@@ -224,13 +224,19 @@ export class MovieDialogSystem {
     private analyzeBrandonSentiment(response: string): BrandonExpression {
         const lowerResponse = response.toLowerCase();
         
-        // Keywords that indicate approval/liking movies
+        // Keywords that indicate approval/liking movies (removed money-related words)
         const approvalKeywords = [
             'excellent', 'wonderful', 'masterpiece', 'brilliant', 'fantastic',
             'love', 'adore', 'appreciate', 'recommend', 'perfect',
             'beautiful', 'moving', 'touching', 'powerful', 'impressive',
             'fine', 'good choice', 'solid', 'well done', 'crafted',
-            'money', 'worth watching', 'classic', 'timeless'
+            'worth watching', 'classic', 'timeless', 'great', 'amazing'
+        ];
+        
+        // Keywords specifically for money/financial success
+        const moneyKeywords = [
+            'money', 'profit', 'worth', 'million', 'billion', 'box office',
+            'gross', 'revenue', 'earned', 'made', 'financial', 'success'
         ];
         
         // Keywords that indicate disapproval/disliking movies
@@ -246,6 +252,7 @@ export class MovieDialogSystem {
         
         let approvalScore = 0;
         let disapprovalScore = 0;
+        let moneyScore = 0;
         
         // Count approval keywords
         approvalKeywords.forEach(keyword => {
@@ -261,28 +268,65 @@ export class MovieDialogSystem {
             }
         });
         
+        // Count money keywords (separate from approval)
+        moneyKeywords.forEach(keyword => {
+            if (lowerResponse.includes(keyword)) {
+                moneyScore++;
+            }
+        });
+        
         // Special case: if Brandon mentions his internal conflict about technology
         if (lowerResponse.includes('existential crisis') && lowerResponse.includes('technology')) {
             disapprovalScore += 2; // Heavy weight for his signature conflict
         }
         
-        // Special case: if he mentions money or financial terms positively
-        if (lowerResponse.includes('money') || lowerResponse.includes('profit') || lowerResponse.includes('worth')) {
-            approvalScore += 2;
-        }
-        
-        console.log(`🧠 Brandon sentiment analysis: approval=${approvalScore}, disapproval=${disapprovalScore}`);
+        console.log(`🧠 Brandon sentiment analysis: approval=${approvalScore}, disapproval=${disapprovalScore}, money=${moneyScore}`);
         console.log(`📝 Analyzed text snippet: "${response.substring(0, 100)}..."`);
         
-        // Determine expression based on scores
-        if (disapprovalScore > approvalScore && disapprovalScore >= 2) {
-            console.log('🎯 Result: DISAPPROVAL - Brandon will be angry');
-            return 'disapproval';
-        } else if (approvalScore > disapprovalScore && approvalScore >= 2) {
-            console.log('🎯 Result: MONEY - Brandon will be pleased');
+        // Priority order: Money > Disapproval > Approval > Neutral
+        if (moneyScore >= 1) {
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandonMoney.png');
+            console.log('🎯 MOVIEDIALOG REASON: Money keywords detected (highest priority)');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                moneyScore: moneyScore,
+                moneyKeywords: moneyKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                response: response.substring(0, 200) + '...'
+            });
             return 'money';
+        } else if (disapprovalScore > approvalScore && disapprovalScore >= 1) {
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandonDisapproval.png');
+            console.log('🎯 MOVIEDIALOG REASON: Disapproval score higher than approval');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                moneyScore: moneyScore,
+                disapprovalKeywords: disapprovalKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                response: response.substring(0, 200) + '...'
+            });
+            return 'disapproval';
+        } else if (approvalScore > disapprovalScore && approvalScore >= 1) {
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandonApproval.png');
+            console.log('🎯 MOVIEDIALOG REASON: Approval score higher than disapproval (positive movie response)');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                moneyScore: moneyScore,
+                approvalKeywords: approvalKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                response: response.substring(0, 200) + '...'
+            });
+            return 'approval';
         } else {
-            console.log('🎯 Result: NEUTRAL - Brandon will stay neutral');
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandon.png (neutral)');
+            console.log('🎯 MOVIEDIALOG REASON: Scores below threshold or equal');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                moneyScore: moneyScore,
+                reason: approvalScore === disapprovalScore ? 'Equal scores' : 'Below threshold',
+                response: response.substring(0, 200) + '...'
+            });
             return 'neutral';
         }
     }
@@ -301,20 +345,29 @@ export class MovieDialogSystem {
         switch (expression) {
             case 'money':
                 textureKey = 'amish-brandon-money';
-                console.log('💰 Brandon is pleased with the movie recommendations!');
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandonMoney.png');
+                console.log('🎬 REASON: Brandon sees money in movie recommendations');
+                break;
+            case 'approval':
+                textureKey = 'amish-brandon-approval';
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandonApproval.png');
+                console.log('🎬 REASON: Brandon approves of these movie recommendations');
                 break;
             case 'disapproval':
                 textureKey = 'amish-brandon-disapproval';
-                console.log('😠 Brandon disapproves of these movies!');
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandonDisapproval.png');
+                console.log('🎬 REASON: Brandon disapproves of these movies');
                 break;
             case 'neutral':
             default:
                 textureKey = 'amish-brandon';
-                console.log('😐 Brandon has a neutral expression');
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandon.png (neutral)');
+                console.log('🎬 REASON: Brandon has neutral expression');
                 break;
         }
         
-        console.log(`Changing Brandon texture from "${this.targetSprite.texture.key}" to "${textureKey}"`);
+        console.log(`🔄 Changing Brandon texture from "${this.targetSprite.texture.key}" to "${textureKey}"`);
+        console.log(`🔄 Current step: ${this.currentStep}, Dialog active: ${this.isActive}`);
         
         // Check if the texture exists
         if (!this.scene.textures.exists(textureKey)) {
