@@ -41,8 +41,8 @@ export class MascotPlayground extends Scene {
             this.anims.create({ key: 'frog-idle', frames: this.anims.generateFrameNumbers('frog', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
         }
 
-        // Central mascot - Amish Brandon Money
-        this.mascot = this.add.sprite(512, 420, 'amish-brandon');
+        // Amish Brandon Money - positioned on the left side for better speech bubble layout
+        this.mascot = this.add.sprite(280, 420, 'amish-brandon');
         this.mascot.setScale(0.5);
         this.sprites.push(this.mascot);
 
@@ -176,6 +176,9 @@ export class MascotPlayground extends Scene {
 
         // Initialize movie dialog system
         this.movieDialogSystem = new MovieDialogSystem(this);
+        
+        // For debugging - expose to global scope
+        (window as any).brandonDialogSystem = this.movieDialogSystem;
 
         EventBus.emit('current-scene-ready', this);
 

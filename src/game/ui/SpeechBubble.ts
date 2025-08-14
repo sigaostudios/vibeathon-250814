@@ -19,7 +19,7 @@ export class SpeechBubble {
         backgroundColor?: number;
         textColor?: string;
         fontSize?: string;
-        position?: 'top' | 'bottom' | 'left' | 'right';
+        position?: 'top' | 'bottom' | 'left' | 'right' | 'auto' | 'side';
     } = {}) {
         const {
             duration = 0, // 0 means don't auto-hide
@@ -27,7 +27,7 @@ export class SpeechBubble {
             backgroundColor = 0xffffff,
             textColor = '#333333',
             fontSize = '16px',
-            position = 'top'
+            position = 'auto'
         } = options;
 
         // Clear previous content
@@ -62,12 +62,36 @@ export class SpeechBubble {
         const spriteX = targetSprite.x;
         const spriteY = targetSprite.y;
         const spriteBounds = targetSprite.getBounds();
+        const gameWidth = this.scene.scale.width;
+        const gameHeight = this.scene.scale.height;
 
         let bubbleX = spriteX;
         let bubbleY = spriteY;
         let tailPath: number[] = [];
+        let actualPosition = position;
 
-        switch (position) {
+        // Auto positioning logic
+        if (position === 'auto') {
+            // For longer messages or when sprite is on the left side, prefer right positioning
+            if (message.length > 200 || spriteX < gameWidth * 0.5) {
+                actualPosition = 'right'; // Prefer right side for left-positioned sprites
+            } else {
+                actualPosition = 'top';
+            }
+            console.log(`💬 Auto-positioning: message length=${message.length}, sprite at (${spriteX}, ${spriteY}) -> ${actualPosition}`);
+        } else if (position === 'side') {
+            // For side positioning, strongly prefer right since Brandon is on the left
+            if (spriteX < gameWidth * 0.6) {
+                actualPosition = 'right'; // Prefer right for left-side sprites
+            } else {
+                actualPosition = 'left'; // Only use left if sprite is far right
+            }
+            console.log(`💬 Side positioning: sprite at (${spriteX}, ${spriteY}) -> ${actualPosition}`);
+        } else {
+            console.log(`💬 Manual positioning: ${position}`);
+        }
+
+        switch (actualPosition) {
             case 'top':
                 bubbleY = spriteY - spriteBounds.height/2 - bubbleHeight/2 - 30;
                 // Clamp to screen bounds
@@ -83,19 +107,18 @@ export class SpeechBubble {
                 tailPath = [0, -bubbleHeight/2, -20, -bubbleHeight/2 - 20, 20, -bubbleHeight/2 - 20];
                 break;
             case 'left':
-                bubbleX = spriteX - spriteBounds.width/2 - bubbleWidth/2 - 30;
-                tailPath = [bubbleWidth/2, 0, bubbleWidth/2 + 20, -20, bubbleWidth/2 + 20, 20];
+                bubbleX = spriteX - spriteBounds.width/2 - bubbleWidth/2 - 40;
+                bubbleY = spriteY - 20; // Slightly above sprite center
+                tailPath = [bubbleWidth/2, 20, bubbleWidth/2 + 20, 0, bubbleWidth/2 + 20, 40];
                 break;
             case 'right':
-                bubbleX = spriteX + spriteBounds.width/2 + bubbleWidth/2 + 30;
-                tailPath = [-bubbleWidth/2, 0, -bubbleWidth/2 - 20, -20, -bubbleWidth/2 - 20, 20];
+                bubbleX = spriteX + spriteBounds.width/2 + bubbleWidth/2 + 40;
+                bubbleY = spriteY - 20; // Slightly above sprite center
+                tailPath = [-bubbleWidth/2, 20, -bubbleWidth/2 - 20, 0, -bubbleWidth/2 - 20, 40];
                 break;
         }
 
         // Clamp bubble position to screen bounds
-        const gameWidth = this.scene.scale.width;
-        const gameHeight = this.scene.scale.height;
-        
         bubbleX = Phaser.Math.Clamp(bubbleX, bubbleWidth/2 + 20, gameWidth - bubbleWidth/2 - 20);
         bubbleY = Phaser.Math.Clamp(bubbleY, bubbleHeight/2 + 20, gameHeight - bubbleHeight/2 - 20);
 
