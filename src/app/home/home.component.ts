@@ -1,7 +1,6 @@
-import { Component, viewChild } from '@angular/core';
+import { Component, viewChild, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { PhaserGameComponent } from '../phaser-game.component';
 import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
@@ -13,11 +12,11 @@ import { AIService } from '../services/ai/ai.service';
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule, PhaserGameComponent, FlightNotificationComponent],
+    imports: [CommonModule, RouterLink, PhaserGameComponent, FlightNotificationComponent],
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
 })
-export class HomeComponent {
+export class HomeComponent implements OnDestroy {
     public spritePosition = { x: 0, y: 0 };
     public canToggleMovement = false;
     public canAddSprite = false;
@@ -27,13 +26,12 @@ export class HomeComponent {
     private gameMoving = false;
 
     public statusLabel = '—';
+    
+    // Konami code sequence: up, up, down, down, left, right, left, right, b, a
+    private konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+    private konamiInput: string[] = [];
+    private konamiTimeoutId?: number;
 
-    // Movie recommendation dialog properties
-    public showMovieDialog = false;
-    public movieDialogStep: 'asking' | 'waiting' | 'responding' = 'asking';
-    public brandonQuestion = "Well, well... *adjusts hat suspiciously* So you want movie recommendations from me, eh? Keep it down while I think... What kind of moving pictures are you in the mood for? And don't you dare mention anything with too many of those blasted electronic contraptions!";
-    public userMoviePreferences = '';
-    public brandonResponse = '';
 
     // Get the PhaserGame component instance
     phaserRef = viewChild.required(PhaserGameComponent);
@@ -59,9 +57,9 @@ export class HomeComponent {
             this.updateStatus();
         });
 
-        // Listen for Brandon clicks to show movie dialog
-        EventBus.on('brandon-clicked', () => {
-            this.showMovieRecommendationDialog();
+        // Listen for movie recommendation requests from Phaser
+        EventBus.on('request-movie-recommendations', (userPreferences: string) => {
+            this.handleMovieRecommendationRequest(userPreferences);
         });
     }
 
@@ -112,60 +110,47 @@ export class HomeComponent {
     }
 
     public engageInEspionage(): void {
-        console.log('Espionage button clicked - calling AI summary');
+        console.log('Espionage activated via Konami code - calling AI summary');
+        
+        // Show Brandon's speech bubble while fetching
+        EventBus.emit('show-brandon-speech', 'Engaging in super top secret espionage');
+        
         // Use the new AI summary functionality instead of just the latest commit
         this.branchSpyService.getAISummaryOfRecentChanges().subscribe({
             next: (summary) => {
                 console.log('Received AI summary:', summary);
-                // Send the AI summary to the game scene to display
-                EventBus.emit('display-espionage-text', summary);
+                // Ensure speech bubble stays for at least 5 seconds
+                setTimeout(() => {
+                    EventBus.emit('hide-brandon-speech');
+                    EventBus.emit('display-espionage-text', summary);
+                }, 5000);
             },
             error: (error) => {
                 console.error('Error getting AI summary:', error);
-                EventBus.emit('display-espionage-text', 'Error: ' + error.message);
+                // Ensure speech bubble stays for at least 5 seconds even on error
+                setTimeout(() => {
+                    EventBus.emit('hide-brandon-speech');
+                    EventBus.emit('display-espionage-text', 'Error: ' + error.message);
+                }, 5000);
             }
         });
     }
 
-    // Movie recommendation dialog methods
-    public showMovieRecommendationDialog(): void {
-        this.showMovieDialog = true;
-        this.movieDialogStep = 'asking';
-        this.userMoviePreferences = '';
-        this.brandonResponse = '';
-    }
-
-    public closeMovieDialog(): void {
-        this.showMovieDialog = false;
-        this.movieDialogStep = 'asking';
-        this.userMoviePreferences = '';
-        this.brandonResponse = '';
-    }
-
-    public submitMoviePreferences(): void {
-        if (!this.userMoviePreferences.trim()) {
-            return;
-        }
-
-        this.movieDialogStep = 'waiting';
+    // Handle movie recommendation requests from Phaser scene
+    private handleMovieRecommendationRequest(userPreferences: string): void {
+        console.log('Processing movie recommendation request:', userPreferences);
         
-        this.aiService.askBrandonForMovieRecommendations(this.userMoviePreferences).subscribe({
+        this.aiService.askBrandonForMovieRecommendations(userPreferences).subscribe({
             next: (response) => {
-                this.brandonResponse = response;
-                this.movieDialogStep = 'responding';
+                console.log('AI response received:', response);
+                EventBus.emit('ai-movie-response', response);
             },
             error: (error) => {
                 console.error('Error getting Brandon movie recommendations:', error);
-                this.brandonResponse = "Bah! *mutters angrily* My poop sock is smarter than this contraption! The electronic talking box isn't working right now. Try again later, and KEEP IT DOWN while you're at it!";
-                this.movieDialogStep = 'responding';
+                const errorResponse = "Bah! *mutters angrily* My poop sock is smarter than this contraption! The electronic talking box isn't working right now. Try again later, and KEEP IT DOWN while you're at it!";
+                EventBus.emit('ai-movie-response', errorResponse);
             }
         });
-    }
-
-    public askAnotherQuestion(): void {
-        this.movieDialogStep = 'asking';
-        this.userMoviePreferences = '';
-        this.brandonResponse = '';
     }
 
     private updateStatus(): void {
@@ -175,5 +160,44 @@ export class HomeComponent {
         const movementText = movementOn ? 'On' : 'Off';
         const sceneText = this.currentSceneKey || '—';
         this.statusLabel = `Scene: ${sceneText} • Movement: ${movementText}`;
+    }
+
+    @HostListener('window:keydown', ['$event'])
+    onKeyDown(event: KeyboardEvent): void {
+        // Clear existing timeout
+        if (this.konamiTimeoutId) {
+            clearTimeout(this.konamiTimeoutId);
+        }
+
+        // Add the pressed key to the input sequence
+        this.konamiInput.push(event.code);
+
+        // Keep only the last 10 keys (length of Konami sequence)
+        if (this.konamiInput.length > this.konamiSequence.length) {
+            this.konamiInput.shift();
+        }
+
+        // Check if the current sequence matches the Konami code
+        if (this.konamiInput.length === this.konamiSequence.length) {
+            const isKonamiCode = this.konamiInput.every((key, index) => key === this.konamiSequence[index]);
+            
+            if (isKonamiCode) {
+                console.log('Konami code detected! Engaging espionage...');
+                this.engageInEspionage();
+                this.konamiInput = []; // Reset sequence
+                return;
+            }
+        }
+
+        // Set timeout to reset sequence after 3 seconds of inactivity
+        this.konamiTimeoutId = window.setTimeout(() => {
+            this.konamiInput = [];
+        }, 3000);
+    }
+
+    ngOnDestroy(): void {
+        if (this.konamiTimeoutId) {
+            clearTimeout(this.konamiTimeoutId);
+        }
     }
 }

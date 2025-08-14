@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { MovieDialogSystem } from '../ui/MovieDialogSystem';
 
 export class MascotPlayground extends Scene {
     camera!: Phaser.Cameras.Scene2D.Camera;
@@ -16,10 +17,13 @@ export class MascotPlayground extends Scene {
     private musicVolume = 0.04; // very soft
     private sfxVolume = 0.35;   // fairly soft by default
     private espionageText?: Phaser.GameObjects.Text;
+    private espionageContainer?: Phaser.GameObjects.Container;
     private flightTexts: Phaser.GameObjects.Text[] = [];
     private airplaneSprites: Phaser.GameObjects.Sprite[] = [];
     private flightData: Map<Phaser.GameObjects.Sprite, any> = new Map();
     private activeFlightCount = 0;
+    private movieDialogSystem!: MovieDialogSystem;
+    private brandonSpeechBubble?: Phaser.GameObjects.Container;
 
     constructor() {
         super('MascotPlayground');
@@ -40,8 +44,8 @@ export class MascotPlayground extends Scene {
             this.anims.create({ key: 'frog-idle', frames: this.anims.generateFrameNumbers('frog', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
         }
 
-        // Central mascot - Amish Brandon Money
-        this.mascot = this.add.sprite(512, 420, 'amish-brandon');
+        // Amish Brandon Money - positioned on the left side for better speech bubble layout
+        this.mascot = this.add.sprite(280, 420, 'amish-brandon');
         this.mascot.setScale(0.5);
         this.sprites.push(this.mascot);
 
@@ -82,7 +86,7 @@ export class MascotPlayground extends Scene {
         this.mascot.on('pointerdown', (pointer: any) => {
             // Only trigger on left click (not during drag)
             if (pointer.leftButtonDown() && !pointer.justMoved) {
-                EventBus.emit('brandon-clicked');
+                this.handleBrandonClick();
             }
         });
 
@@ -127,6 +131,8 @@ export class MascotPlayground extends Scene {
         EventBus.on('display-espionage-text', this.displayEspionageText, this);
         EventBus.on('display-overhead-flights', this.displayOverheadFlights, this);
         EventBus.on('clear-overhead-flights', this.clearOverheadFlights, this);
+        EventBus.on('show-brandon-speech', this.showBrandonSpeech, this);
+        EventBus.on('hide-brandon-speech', this.hideBrandonSpeech, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -149,8 +155,15 @@ export class MascotPlayground extends Scene {
             EventBus.off('display-espionage-text', this.displayEspionageText, this);
             EventBus.off('display-overhead-flights', this.displayOverheadFlights, this);
             EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
+            EventBus.off('show-brandon-speech', this.showBrandonSpeech, this);
+            EventBus.off('hide-brandon-speech', this.hideBrandonSpeech, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
+            
+            // Cleanup movie dialog system
+            if (this.movieDialogSystem) {
+                this.movieDialogSystem.destroy();
+            }
         });
         this.events.on('destroy', () => {
             EventBus.off('add-sprite', onAddSprite);
@@ -159,9 +172,22 @@ export class MascotPlayground extends Scene {
             EventBus.off('display-espionage-text', this.displayEspionageText, this);
             EventBus.off('display-overhead-flights', this.displayOverheadFlights, this);
             EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
+            EventBus.off('show-brandon-speech', this.showBrandonSpeech, this);
+            EventBus.off('hide-brandon-speech', this.hideBrandonSpeech, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
+            
+            // Cleanup movie dialog system
+            if (this.movieDialogSystem) {
+                this.movieDialogSystem.destroy();
+            }
         });
+
+        // Initialize movie dialog system
+        this.movieDialogSystem = new MovieDialogSystem(this);
+        
+        // For debugging - expose to global scope
+        (window as any).brandonDialogSystem = this.movieDialogSystem;
 
         EventBus.emit('current-scene-ready', this);
 
@@ -253,41 +279,208 @@ export class MascotPlayground extends Scene {
 
     private displayEspionageText(message: string) {
         // Remove existing espionage text if any
-        if (this.espionageText) {
-            this.espionageText.destroy();
+        if (this.espionageContainer) {
+            // Destroy mask first to prevent white box
+            const maskShape = (this.espionageContainer as any).maskShape;
+            if (maskShape) {
+                maskShape.destroy();
+            }
+            this.espionageContainer.destroy();
+            this.espionageContainer = undefined;
+            this.espionageText = undefined;
         }
 
-        // Create new text object to display the commit message
-        this.espionageText = this.add.text(512, 250, message, {
-            fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#00ff00',
-            stroke: '#000000',
-            strokeThickness: 4,
-            align: 'center',
-            wordWrap: { width: 700 }
-        }).setOrigin(0.5).setDepth(200);
+        // Create main container for the entire document system
+        const mainContainer = this.add.container(512, 384);
 
-        // Add a fade-in effect
-        this.espionageText.setAlpha(0);
-        this.tweens.add({
-            targets: this.espionageText,
-            alpha: 1,
-            duration: 500,
-            ease: 'Power2'
+        // Document dimensions
+        const docWidth = 800;
+        const docHeight = 500;
+        const contentAreaHeight = 350; // Visible content area height
+
+        // Create document background (aged paper look)
+        const paperBg = this.add.graphics();
+        paperBg.fillStyle(0xF5E6D3, 0.95);
+        paperBg.lineStyle(2, 0x8B4513, 0.8);
+        paperBg.fillRoundedRect(-docWidth / 2, -docHeight / 2, docWidth, docHeight, 5);
+        paperBg.strokeRoundedRect(-docWidth / 2, -docHeight / 2, docWidth, docHeight, 5);
+
+        // Add some texture lines for aged paper effect
+        paperBg.lineStyle(1, 0xD2B48C, 0.3);
+        for (let i = 0; i < 20; i++) {
+            const y = -docHeight / 2 + (i * docHeight / 20);
+            paperBg.lineBetween(-docWidth / 2 + 30, y, docWidth / 2 - 30, y);
+        }
+
+        // Create "TOP SECRET" header stamp (fixed position)
+        const headerText = this.add.text(0, -docHeight / 2 + 40, "TOP SECRET", {
+            fontFamily: 'Courier New, monospace',
+            fontSize: '24px',
+            color: '#CC0000',
+            align: 'center',
+            stroke: '#CC0000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+
+        // Add decorative borders around "TOP SECRET"
+        const headerBorder = this.add.graphics();
+        headerBorder.lineStyle(3, 0xCC0000, 1);
+        headerBorder.strokeRect(-80, -docHeight / 2 + 20, 160, 40);
+        headerBorder.strokeRect(-85, -docHeight / 2 + 15, 170, 50);
+
+        // Create mask for scrollable area first (needs to be in world coordinates)
+        const maskShape = this.add.graphics();
+        maskShape.setPosition(512, 384); // Same position as main container
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(-docWidth / 2 + 20, -docHeight / 2 + 80, docWidth - 40, contentAreaHeight);
+        const mask = maskShape.createGeometryMask();
+
+        // Create scrollable content container
+        const scrollableContainer = this.add.container(0, -docHeight / 2 + 100); // Start right after header
+
+        // Create main document text with typewriter font
+        const documentText = this.add.text(0, 10, message, {
+            fontFamily: 'Courier New, monospace',
+            fontSize: '13px',
+            color: '#2F1B14',
+            align: 'center',
+            wordWrap: { width: docWidth - 120 },
+            lineSpacing: 6
+        }).setOrigin(0.5, 0);
+
+        // Add "CLASSIFIED" watermark positioned relative to content
+        const watermark = this.add.text(0, documentText.height / 2, "CLASSIFIED", {
+            fontFamily: 'Courier New, monospace',
+            fontSize: '42px',
+            color: '#CC0000',
+            stroke: '#CC0000',
+            strokeThickness: 1
+        }).setOrigin(0.5).setRotation(-0.3).setAlpha(0.1);
+
+        // Add content to scrollable container
+        scrollableContainer.add([documentText, watermark]);
+        
+        // Apply mask to the scrollable container
+        scrollableContainer.setMask(mask);
+
+        // Create footer with classification info (fixed position)
+        const footerText = this.add.text(0, docHeight / 2 - 30, "CLASSIFICATION LEVEL: TOP SECRET\nAUTHORIZED PERSONNEL ONLY", {
+            fontFamily: 'Courier New, monospace',
+            fontSize: '12px',
+            color: '#CC0000',
+            align: 'center',
+            stroke: '#CC0000',
+            strokeThickness: 0.5
+        }).setOrigin(0.5);
+
+        // Create scroll indicators
+        const scrollUpArrow = this.add.text(docWidth / 2 - 30, -docHeight / 2 + 100, "▲", {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#8B4513'
+        }).setOrigin(0.5).setAlpha(0.7);
+
+        const scrollDownArrow = this.add.text(docWidth / 2 - 30, docHeight / 2 - 80, "▼", {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#8B4513'
+        }).setOrigin(0.5).setAlpha(0.7);
+
+        // Scroll functionality
+        let scrollY = 0;
+        const maxScroll = Math.max(0, documentText.height - contentAreaHeight + 40);
+        const scrollSpeed = 30;
+        const initialY = -docHeight / 2 + 100;
+
+        // Mouse wheel scrolling
+        this.input.on('wheel', (pointer: any, gameObjects: any, deltaX: number, deltaY: number) => {
+            if (mainContainer && mainContainer.getBounds().contains(pointer.x, pointer.y)) {
+                scrollY = Phaser.Math.Clamp(scrollY + deltaY * 0.5, 0, maxScroll);
+                scrollableContainer.setY(initialY - scrollY);
+                
+                // Update arrow visibility
+                scrollUpArrow.setAlpha(scrollY > 0 ? 1 : 0.3);
+                scrollDownArrow.setAlpha(scrollY < maxScroll ? 1 : 0.3);
+            }
         });
 
-        // Auto-hide after 10 seconds
-        this.time.delayedCall(10000, () => {
-            if (this.espionageText) {
+        // Arrow click scrolling
+        scrollUpArrow.setInteractive({ useHandCursor: true });
+        scrollUpArrow.on('pointerdown', () => {
+            scrollY = Phaser.Math.Clamp(scrollY - scrollSpeed, 0, maxScroll);
+            this.tweens.add({
+                targets: scrollableContainer,
+                y: initialY - scrollY,
+                duration: 200,
+                ease: 'Power2'
+            });
+            scrollUpArrow.setAlpha(scrollY > 0 ? 1 : 0.3);
+            scrollDownArrow.setAlpha(scrollY < maxScroll ? 1 : 0.3);
+        });
+
+        scrollDownArrow.setInteractive({ useHandCursor: true });
+        scrollDownArrow.on('pointerdown', () => {
+            scrollY = Phaser.Math.Clamp(scrollY + scrollSpeed, 0, maxScroll);
+            this.tweens.add({
+                targets: scrollableContainer,
+                y: initialY - scrollY,
+                duration: 200,
+                ease: 'Power2'
+            });
+            scrollUpArrow.setAlpha(scrollY > 0 ? 1 : 0.3);
+            scrollDownArrow.setAlpha(scrollY < maxScroll ? 1 : 0.3);
+        });
+
+        // Set initial arrow states
+        scrollUpArrow.setAlpha(0.3);
+        scrollDownArrow.setAlpha(maxScroll > 0 ? 1 : 0.3);
+
+        // Add all elements to main container (mask shape should NOT be added to avoid double positioning)
+        mainContainer.add([paperBg, headerBorder, headerText, scrollableContainer, footerText, scrollUpArrow, scrollDownArrow]);
+        mainContainer.setDepth(200);
+
+        // Store references for cleanup
+        this.espionageContainer = mainContainer;
+        this.espionageText = documentText;
+        
+        // Store mask reference for proper cleanup
+        (mainContainer as any).maskShape = maskShape;
+
+        // Add a dramatic fade-in with slight rotation
+        mainContainer.setAlpha(0);
+        mainContainer.setRotation(0.1);
+        mainContainer.setScale(0.8);
+        
+        this.tweens.add({
+            targets: mainContainer,
+            alpha: 1,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 800,
+            ease: 'Back.easeOut'
+        });
+
+        // Auto-hide after 20 seconds (longer for document reading)
+        this.time.delayedCall(20000, () => {
+            if (this.espionageContainer) {
                 this.tweens.add({
-                    targets: this.espionageText,
+                    targets: this.espionageContainer,
                     alpha: 0,
-                    duration: 500,
+                    scaleX: 0.8,
+                    scaleY: 0.8,
+                    rotation: -0.1,
+                    duration: 600,
                     ease: 'Power2',
                     onComplete: () => {
-                        if (this.espionageText) {
-                            this.espionageText.destroy();
+                        if (this.espionageContainer) {
+                            // Destroy mask first to prevent white box
+                            const maskShape = (this.espionageContainer as any).maskShape;
+                            if (maskShape) {
+                                maskShape.destroy();
+                            }
+                            this.espionageContainer.destroy();
+                            this.espionageContainer = undefined;
                             this.espionageText = undefined;
                         }
                     }
@@ -520,5 +713,80 @@ export class MascotPlayground extends Scene {
         });
 
         // No auto-hide - stays until user clicks
+    }
+
+    private handleBrandonClick() {
+        console.log('Brandon clicked - starting movie dialog');
+        
+        // Only start dialog if not already active
+        if (!this.movieDialogSystem.active) {
+            this.movieDialogSystem.startDialog(this.mascot);
+        }
+    }
+
+    private showBrandonSpeech(message: string) {
+        // Hide any existing speech bubble
+        this.hideBrandonSpeech();
+
+        // Create speech bubble container
+        this.brandonSpeechBubble = this.add.container(this.mascot.x, this.mascot.y - 120);
+
+        // Create speech bubble background (rounded rectangle)
+        const bubbleWidth = 200;
+        const bubbleHeight = 60;
+        const bubble = this.add.graphics();
+        bubble.fillStyle(0xffffff, 0.95);
+        bubble.lineStyle(2, 0x000000);
+        bubble.fillRoundedRect(-bubbleWidth / 2, -bubbleHeight / 2, bubbleWidth, bubbleHeight, 10);
+        bubble.strokeRoundedRect(-bubbleWidth / 2, -bubbleHeight / 2, bubbleWidth, bubbleHeight, 10);
+
+        // Create speech bubble tail (triangle pointing down to Brandon)
+        const tail = this.add.graphics();
+        tail.fillStyle(0xffffff, 0.95);
+        tail.lineStyle(2, 0x000000);
+        tail.fillTriangle(0, bubbleHeight / 2 - 2, -10, bubbleHeight / 2 + 15, 10, bubbleHeight / 2 + 15);
+        tail.strokeTriangle(0, bubbleHeight / 2 - 2, -10, bubbleHeight / 2 + 15, 10, bubbleHeight / 2 + 15);
+
+        // Create text
+        const text = this.add.text(0, 0, message, {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#000000',
+            align: 'center',
+            wordWrap: { width: bubbleWidth - 20 }
+        }).setOrigin(0.5);
+
+        // Add components to container
+        this.brandonSpeechBubble.add([bubble, tail, text]);
+        this.brandonSpeechBubble.setDepth(300);
+
+        // Add bounce-in animation
+        this.brandonSpeechBubble.setScale(0);
+        this.tweens.add({
+            targets: this.brandonSpeechBubble,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 300,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    private hideBrandonSpeech() {
+        if (this.brandonSpeechBubble) {
+            // Animate out
+            this.tweens.add({
+                targets: this.brandonSpeechBubble,
+                scaleX: 0,
+                scaleY: 0,
+                duration: 200,
+                ease: 'Back.easeIn',
+                onComplete: () => {
+                    if (this.brandonSpeechBubble) {
+                        this.brandonSpeechBubble.destroy();
+                        this.brandonSpeechBubble = undefined;
+                    }
+                }
+            });
+        }
     }
 }

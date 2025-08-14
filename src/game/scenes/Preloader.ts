@@ -47,8 +47,11 @@ export class Preloader extends Scene
         // Orb mascot (3x3 = 9 frames, 237x213 per frame)
         this.load.spritesheet('orb', 'orb.png', { frameWidth: 237, frameHeight: 213 });
         
-        // Amish Brandon Money mascot
+        // Amish Brandon mascots - different expressions
         this.load.image('amish-brandon', 'sprites/AmishBrandonMoney.png');
+        this.load.image('amish-brandon-money', 'sprites/AmishBrandonMoney.png');
+        this.load.image('amish-brandon-disapproval', 'sprites/AmishBrandonDisapproval.png');
+        this.load.image('amish-brandon-face', 'sprites/ABFace.png'); // Alternative neutral face
         
         // Sprite Fanta can
         this.load.image('sprite-can', 'sprites/imgbin-sprite-fizzy-drinks-coca-cola-fanta-beverage-can-fanta-sprite-easy-open-can-illustration-be9j6i4QyWc9apqwAvp5TY1Ad.png');
