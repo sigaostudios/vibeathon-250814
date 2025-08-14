@@ -50,6 +50,7 @@ export class Preloader extends Scene
         // Amish Brandon mascots - different expressions
         this.load.image('amish-brandon', 'sprites/AmishBrandonMoney.png');
         this.load.image('amish-brandon-money', 'sprites/AmishBrandonMoney.png');
+        this.load.image('amish-brandon-approval', 'sprites/AmishBrandonApproval.png');
         this.load.image('amish-brandon-disapproval', 'sprites/AmishBrandonDisapproval.png');
         this.load.image('amish-brandon-face', 'sprites/ABFace.png'); // Alternative neutral face
         

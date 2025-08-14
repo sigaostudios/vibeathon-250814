@@ -85,6 +85,8 @@ export class MascotPlayground extends Scene {
         this.mascot.on('pointerdown', (pointer: any) => {
             // Only trigger on left click (not during drag)
             if (pointer.leftButtonDown() && !pointer.justMoved) {
+                // Reset expression first, then handle dialog
+                this.setBrandonNeutral();
                 this.handleBrandonClick();
             }
         });
@@ -134,6 +136,7 @@ export class MascotPlayground extends Scene {
         EventBus.on('hide-brandon-speech', this.hideBrandonSpeech, this);
         EventBus.on('brandon-approve-movie', this.setBrandonApproval, this);
         EventBus.on('brandon-disapprove-movie', this.setBrandonDisapproval, this);
+        EventBus.on('brandon-show-money', this.setBrandonMoney, this);
         EventBus.on('brandon-reset-expression', this.setBrandonNeutral, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
@@ -161,6 +164,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('hide-brandon-speech', this.hideBrandonSpeech, this);
             EventBus.off('brandon-approve-movie', this.setBrandonApproval, this);
             EventBus.off('brandon-disapprove-movie', this.setBrandonDisapproval, this);
+            EventBus.off('brandon-show-money', this.setBrandonMoney, this);
             EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
@@ -181,6 +185,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('hide-brandon-speech', this.hideBrandonSpeech, this);
             EventBus.off('brandon-approve-movie', this.setBrandonApproval, this);
             EventBus.off('brandon-disapprove-movie', this.setBrandonDisapproval, this);
+            EventBus.off('brandon-show-money', this.setBrandonMoney, this);
             EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
@@ -196,6 +201,12 @@ export class MascotPlayground extends Scene {
         
         // For debugging - expose to global scope
         (window as any).brandonDialogSystem = this.movieDialogSystem;
+
+        // Add escape key listener to reset Brandon's expression
+        this.input.keyboard?.on('keydown-ESC', () => {
+            console.log('Escape pressed - resetting Brandon expression');
+            this.setBrandonNeutral();
+        });
 
         EventBus.emit('current-scene-ready', this);
 
@@ -724,15 +735,24 @@ export class MascotPlayground extends Scene {
     }
 
     private setBrandonApproval() {
-        // Switch to approval texture (using the money texture for now since no approval texture exists)
-        this.mascot.setTexture('amish-brandon-money');
-        console.log('Brandon approves! Switching to money texture');
+        // Switch to approval texture
+        this.mascot.setTexture('amish-brandon-approval');
+        console.log('Brandon approves! Switching to approval texture');
     }
 
     private setBrandonDisapproval() {
         // Switch to disapproval texture
         this.mascot.setTexture('amish-brandon-disapproval');
         console.log('Brandon disapproves! Switching to disapproval texture');
+    }
+
+    private setBrandonMoney() {
+        // Switch to money texture (for money/high grosses)
+        this.mascot.setTexture('amish-brandon-money');
+        console.log('Brandon sees money! Switching to money texture');
+        
+        // Add special money effect
+        this.sparkle.explode(25, this.mascot.x, this.mascot.y);
     }
 
     private setBrandonNeutral() {

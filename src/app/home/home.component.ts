@@ -164,10 +164,68 @@ export class HomeComponent implements OnDestroy {
     private analyzeBrandonSentiment(response: string): void {
         const lowerResponse = response.toLowerCase();
         
-        // Words that indicate Brandon LOVES the movies
-        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'money', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect'];
+        // Check for money-related content first (highest priority)
+        const moneyKeywords = ['money', 'million', 'billion', 'box office', 'gross', '$', 'earned', 'made', 'revenue', 'profit'];
+        let hasMoney = false;
+        let hasHighGross = false;
         
-        // Words that indicate Brandon HATES the movies  
+        moneyKeywords.forEach(word => {
+            if (lowerResponse.includes(word)) {
+                console.log(`Found money keyword: "${word}"`);
+                hasMoney = true;
+            }
+        });
+        
+        // Check for specific dollar amounts over $100 million
+        const dollarMatches = response.match(/\$(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:million|billion)/gi);
+        if (dollarMatches) {
+            dollarMatches.forEach(match => {
+                console.log(`Found dollar amount: ${match}`);
+                const numberPart = match.replace(/[$,\s]/g, '').match(/(\d+(?:\.\d+)?)/);
+                if (numberPart) {
+                    const amount = parseFloat(numberPart[1]);
+                    const isBillion = match.toLowerCase().includes('billion');
+                    const totalAmount = isBillion ? amount * 1000 : amount; // Convert billions to millions
+                    
+                    if (totalAmount >= 100) {
+                        console.log(`High grossing movie detected: $${totalAmount} million`);
+                        hasHighGross = true;
+                    }
+                }
+            });
+        }
+        
+        // Also check for general "over X million" patterns
+        const grossPatterns = [
+            /over (\d+) million/gi,
+            /more than (\d+) million/gi,
+            /grossed (\d+) million/gi,
+            /made (\d+) million/gi
+        ];
+        
+        grossPatterns.forEach(pattern => {
+            const matches = response.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    console.log(`Found gross pattern: ${match}`);
+                    const amount = parseInt(match.match(/(\d+)/)?.[1] || '0');
+                    if (amount >= 100) {
+                        console.log(`High grossing movie detected from pattern: ${amount} million`);
+                        hasHighGross = true;
+                    }
+                });
+            }
+        });
+        
+        // If money or high grosses are mentioned, show money Brandon
+        if (hasMoney || hasHighGross) {
+            console.log('Money or high grosses detected - showing money Brandon!');
+            EventBus.emit('brandon-show-money');
+            return; // Don't check other sentiments if money is involved
+        }
+        
+        // Regular sentiment analysis if no money detected
+        const approvalWords = ['excellent', 'wonderful', 'brilliant', 'masterpiece', 'worth every penny', 'love', 'great', 'fantastic', 'amazing', 'perfect'];
         const disapprovalWords = ['terrible', 'awful', 'disgusting', 'abomination', 'nonsense', 'contraption', 'existential crisis', 'hate', 'horrible', 'stupid', 'ridiculous'];
         
         let approvalCount = 0;
@@ -176,6 +234,7 @@ export class HomeComponent implements OnDestroy {
         // Count approval words
         approvalWords.forEach(word => {
             if (lowerResponse.includes(word)) {
+                console.log(`Found approval word: "${word}"`);
                 approvalCount++;
             }
         });
@@ -183,6 +242,7 @@ export class HomeComponent implements OnDestroy {
         // Count disapproval words  
         disapprovalWords.forEach(word => {
             if (lowerResponse.includes(word)) {
+                console.log(`Found disapproval word: "${word}"`);
                 disapprovalCount++;
             }
         });
@@ -193,19 +253,9 @@ export class HomeComponent implements OnDestroy {
         if (approvalCount > disapprovalCount && approvalCount > 0) {
             console.log('Brandon approves of the movie recommendations!');
             EventBus.emit('brandon-approve-movie');
-            
-            // Reset to neutral after 3 seconds
-            setTimeout(() => {
-                EventBus.emit('brandon-reset-expression');
-            }, 3000);
         } else if (disapprovalCount > approvalCount && disapprovalCount > 0) {
             console.log('Brandon disapproves of the movie recommendations!');
             EventBus.emit('brandon-disapprove-movie');
-            
-            // Reset to neutral after 3 seconds
-            setTimeout(() => {
-                EventBus.emit('brandon-reset-expression');
-            }, 3000);
         } else {
             console.log('Brandon is neutral about the recommendations');
             // Keep current expression
