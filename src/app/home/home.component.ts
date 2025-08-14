@@ -6,7 +6,7 @@ import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
 import { FlightNotificationComponent } from '../services/flight-tracking/flight-notification.component';
-import { BranchSpyService } from '../services/branch-spy.service';
+import { BranchSpyService } from '../services/branch-spy/branch-spy.service';
 
 @Component({
     selector: 'app-home',

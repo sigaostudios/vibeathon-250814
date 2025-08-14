@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { Observable, from } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { StorageService } from '../storage.service';
-import { GameConfig } from '../configuration/configuration.component';
+import { StorageService } from '../../storage.service';
+import { GameConfig } from '../../configuration/configuration.component';
 
 export interface AIResponse {
   content: string;

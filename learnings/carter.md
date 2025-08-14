@@ -1,0 +1,2 @@
+- Claude seemingly does not want to use the angular cli to create components and things - likely need to update claude md to say so
+- Claude also only sometimes wants to create services in their own folder - probably want an md within that folder
