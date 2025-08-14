@@ -28,11 +28,7 @@ export class MascotPlayground extends Scene {
         this.camera = this.cameras.main;
         this.background = this.add.image(512, 384, 'office');
 
-        // Title driven by config
-        this.titleText = this.add.text(512, 50, this.gameTitle, {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8, align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        // Title removed - no text display
 
         // Simple global animations (in case Preloader didn't create them elsewhere)
         // Dog animation removed; using orb instead
@@ -87,6 +83,20 @@ export class MascotPlayground extends Scene {
             // Add Sprite Fanta can
             const s = this.add.sprite(x, y, 'sprite-can');
             s.setScale(0.3); // Scale down the can to appropriate size
+            
+            // Make it clickable for removal
+            s.setInteractive({ useHandCursor: true });
+            s.on('pointerdown', () => {
+                // Remove from sprites array
+                const index = this.sprites.indexOf(s);
+                if (index > -1) {
+                    this.sprites.splice(index, 1);
+                }
+                // Stop any tweens targeting this sprite
+                this.tweens.killTweensOf(s);
+                // Destroy the sprite
+                s.destroy();
+            });
 
             // Gentle float tween to make it feel alive
             this.tweens.add({
@@ -204,12 +214,7 @@ export class MascotPlayground extends Scene {
     }
 
     private applyConfig(config: any) {
-        if (config && typeof config.gameTitle === 'string' && config.gameTitle.trim() !== '') {
-            this.gameTitle = config.gameTitle.trim();
-            if (this.titleText) {
-                this.titleText.setText(this.gameTitle);
-            }
-        }
+        // Config handling removed since title text is no longer displayed
     }
 
     private scheduleNextPulse() {
