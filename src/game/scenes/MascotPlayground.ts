@@ -80,14 +80,10 @@ export class MascotPlayground extends Scene {
         const onAddSprite = () => {
             const x = Phaser.Math.Between(80, this.scale.width - 80);
             const y = Phaser.Math.Between(120, this.scale.height - 80);
-            const options: { key: string; anim: string; scale?: number }[] = [
-                { key: 'bird', anim: 'bird-fly', scale: 3 },
-                { key: 'frog', anim: 'frog-idle', scale: 2 }
-            ];
-            const pick = Phaser.Math.RND.pick(options);
-            const s = this.add.sprite(x, y, pick.key);
-            if (pick.scale) s.setScale(pick.scale);
-            s.play(pick.anim);
+            
+            // Add Sprite Fanta can
+            const s = this.add.sprite(x, y, 'sprite-can');
+            s.setScale(0.3); // Scale down the can to appropriate size
 
             // Gentle float tween to make it feel alive
             this.tweens.add({
