@@ -9,7 +9,7 @@ windows:
       panes:
         - angualr:
           - clear 
-          - node log.js dev & ng serve
+          - ng serve
   - ai 📎:
       layout: main-vertical
       main-pane-height: 60%
