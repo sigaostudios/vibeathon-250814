@@ -96,6 +96,18 @@ export class MascotPlayground extends Scene {
 
         // Allow Angular to add companion sprites
         const onAddSprite = () => {
+            // Make Brandon do a flip when sprite is added
+            this.tweens.add({
+                targets: this.mascot,
+                rotation: this.mascot.rotation + Math.PI * 2, // Full 360-degree flip
+                duration: 800,
+                ease: 'Power2.easeInOut',
+                onComplete: () => {
+                    // Reset rotation to prevent accumulation
+                    this.mascot.setRotation(0);
+                }
+            });
+            
             // Show Brandon's speech bubble and hide it after 3 seconds
             this.showBrandonSpeech('Ah, refreshing!');
             this.time.delayedCall(3000, () => {
