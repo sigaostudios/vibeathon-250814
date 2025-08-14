@@ -276,13 +276,39 @@ export class MovieDialogSystem {
         
         // Determine expression based on scores
         if (disapprovalScore > approvalScore && disapprovalScore >= 2) {
-            console.log('🎯 Result: DISAPPROVAL - Brandon will be angry');
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandonDisapproval.png');
+            console.log('🎯 MOVIEDIALOG REASON: Disapproval score higher than approval (threshold ≥2)');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                threshold: 2,
+                approvalKeywords: approvalKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                disapprovalKeywords: disapprovalKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                response: response.substring(0, 200) + '...'
+            });
             return 'disapproval';
         } else if (approvalScore > disapprovalScore && approvalScore >= 2) {
-            console.log('🎯 Result: MONEY - Brandon will be pleased');
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandonMoney.png');
+            console.log('🎯 MOVIEDIALOG REASON: Approval score higher than disapproval (threshold ≥2)');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                threshold: 2,
+                approvalKeywords: approvalKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                disapprovalKeywords: disapprovalKeywords.filter(keyword => response.toLowerCase().includes(keyword)),
+                response: response.substring(0, 200) + '...'
+            });
             return 'money';
         } else {
-            console.log('🎯 Result: NEUTRAL - Brandon will stay neutral');
+            console.log('🎯 MOVIEDIALOG IMAGE SELECTION: AmishBrandon.png (neutral)');
+            console.log('🎯 MOVIEDIALOG REASON: Scores below threshold or equal');
+            console.log('🎯 MOVIEDIALOG DETAILS:', {
+                approvalScore: approvalScore,
+                disapprovalScore: disapprovalScore,
+                threshold: 2,
+                reason: approvalScore === disapprovalScore ? 'Equal scores' : 'Below threshold',
+                response: response.substring(0, 200) + '...'
+            });
             return 'neutral';
         }
     }
@@ -301,20 +327,24 @@ export class MovieDialogSystem {
         switch (expression) {
             case 'money':
                 textureKey = 'amish-brandon-money';
-                console.log('💰 Brandon is pleased with the movie recommendations!');
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandonMoney.png');
+                console.log('🎬 REASON: Brandon is pleased with movie recommendations');
                 break;
             case 'disapproval':
                 textureKey = 'amish-brandon-disapproval';
-                console.log('😠 Brandon disapproves of these movies!');
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandonDisapproval.png');
+                console.log('🎬 REASON: Brandon disapproves of these movies');
                 break;
             case 'neutral':
             default:
                 textureKey = 'amish-brandon';
-                console.log('😐 Brandon has a neutral expression');
+                console.log('🎬 MOVIEDIALOG TEXTURE UPDATE: Setting to AmishBrandon.png (neutral)');
+                console.log('🎬 REASON: Brandon has neutral expression');
                 break;
         }
         
-        console.log(`Changing Brandon texture from "${this.targetSprite.texture.key}" to "${textureKey}"`);
+        console.log(`🔄 Changing Brandon texture from "${this.targetSprite.texture.key}" to "${textureKey}"`);
+        console.log(`🔄 Current step: ${this.currentStep}, Dialog active: ${this.isActive}`);
         
         // Check if the texture exists
         if (!this.scene.textures.exists(textureKey)) {
