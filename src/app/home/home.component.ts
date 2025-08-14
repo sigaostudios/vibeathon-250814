@@ -97,9 +97,10 @@ export class HomeComponent {
     }
 
     public engageInEspionage(): void {
-        this.branchSpyService.getLatestCommitMessage().subscribe(message => {
-            // Send the commit message to the game scene to display
-            EventBus.emit('display-espionage-text', message);
+        // Use the new AI summary functionality instead of just the latest commit
+        this.branchSpyService.getAISummaryOfRecentChanges().subscribe(summary => {
+            // Send the AI summary to the game scene to display
+            EventBus.emit('display-espionage-text', summary);
         });
     }
 
