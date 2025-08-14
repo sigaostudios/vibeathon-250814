@@ -46,6 +46,9 @@ export class Preloader extends Scene
 
         // Orb mascot (3x3 = 9 frames, 237x213 per frame)
         this.load.spritesheet('orb', 'orb.png', { frameWidth: 237, frameHeight: 213 });
+        
+        // Amish Brandon Money mascot
+        this.load.image('amish-brandon', 'sprites/AmishBrandonMoney.png');
         // Background music + Orb SFX
         this.load.audio('bgm', 'sounds/bg.mp3');
         this.load.audio('orb1', 'sounds/orbsound1.mp3');
@@ -77,7 +80,7 @@ export class Preloader extends Scene
             EventBus.off('config-saved', applyConfig);
         });
 
-        //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
-        this.scene.start('MainMenu');
+        //  Move to the MascotPlayground scene directly
+        this.scene.start('MascotPlayground');
     }
 }

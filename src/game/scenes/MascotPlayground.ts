@@ -40,14 +40,20 @@ export class MascotPlayground extends Scene {
             this.anims.create({ key: 'frog-idle', frames: this.anims.generateFrameNumbers('frog', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
         }
 
-        // Central mascot
-        this.mascot = this.add.sprite(512, 420, 'orb');
-        if (!this.anims.exists('orb-glow')) {
-            this.anims.create({ key: 'orb-glow', frames: this.anims.generateFrameNumbers('orb', { start: 0, end: 8 }), frameRate: 4, repeat: -1, yoyo: true });
-        }
-        this.mascot.play('orb-glow');
-        this.mascot.setScale(1);
+        // Central mascot - Amish Brandon Money
+        this.mascot = this.add.sprite(512, 420, 'amish-brandon');
+        this.mascot.setScale(0.5);
         this.sprites.push(this.mascot);
+
+        // Make Amish Brandon bounce up and down
+        this.tweens.add({
+            targets: this.mascot,
+            y: 390,
+            duration: 800,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
 
         // Removed vibe ring for a cleaner orb presentation
 
