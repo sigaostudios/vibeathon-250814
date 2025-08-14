@@ -795,6 +795,17 @@ export class MascotPlayground extends Scene {
         // Hide any existing speech bubble
         this.hideBrandonSpeech();
 
+        // If this is the spy message, play Pink Panther theme immediately
+        if (message === 'Engaging in super top secret espionage') {
+            console.log('🎵 SPY SPEECH BUBBLE: Playing Pink Panther theme NOW!');
+            try {
+                this.sound.play('pinkpanther', { volume: this.sfxVolume });
+                console.log('🎵 SPY SPEECH BUBBLE: Pink Panther theme started!');
+            } catch (error) {
+                console.warn('❌ SPY SPEECH BUBBLE: Could not play pinkpanther sound:', error);
+            }
+        }
+
         // Create speech bubble container
         this.brandonSpeechBubble = this.add.container(this.mascot.x, this.mascot.y - 120);
 
@@ -924,8 +935,14 @@ export class MascotPlayground extends Scene {
 
     private playSpyMusic() {
         // Play Pink Panther theme music immediately when spy music is requested
+        console.log('🔍 SOUND SYSTEM DIAGNOSTICS:');
+        console.log('  - Sound manager type:', this.sound.constructor.name);
+        console.log('  - Sound manager locked:', this.sound.locked);
+        console.log('  - Audio cache keys:', Object.keys(this.cache.audio.entries));
+        console.log('  - Cache has pinkpanther:', this.cache.audio.has('pinkpanther'));
+        console.log('  - SFX Volume:', this.sfxVolume);
+        
         try {
-            console.log('🎵 IMMEDIATE SPY MUSIC: About to play Pink Panther theme - sound cache has pinkpanther:', this.cache.audio.has('pinkpanther'));
             this.sound.play('pinkpanther', { volume: this.sfxVolume });
             console.log('🎵 IMMEDIATE SPY MUSIC: Pink Panther theme started playing!');
         } catch (error) {
