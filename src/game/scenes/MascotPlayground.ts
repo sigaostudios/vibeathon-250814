@@ -253,28 +253,8 @@ export class MascotPlayground extends Scene {
 
         EventBus.emit('current-scene-ready', this);
 
-        // Background music (very soft): add + play with config per Phaser audio docs
-        this.music = this.sound.add('bgm');
-        const playMusic = () => {
-            if (this.music && !(this.music as any).isPlaying) {
-                this.music.play({ loop: true, volume: this.musicVolume } as any);
-            }
-        };
-        if (this.sound.locked) {
-            this.sound.once('unlocked', playMusic);
-        } else {
-            playMusic();
-        }
-
         // Schedule periodic sparkle pulses (no sound)
         this.scheduleNextPulse();
-
-        // Schedule random orb SFX at slow random intervals
-        if (this.sound.locked) {
-            this.sound.once('unlocked', () => this.scheduleNextOrbSound());
-        } else {
-            this.scheduleNextOrbSound();
-        }
     }
 
     changeScene() {
@@ -326,18 +306,6 @@ export class MascotPlayground extends Scene {
         });
     }
 
-    private scheduleNextOrbSound() {
-        const delay = Phaser.Math.Between(8000, 16000);
-        this.time.delayedCall(delay, () => {
-            // Pick one of the orb sounds at random
-            const key = Phaser.Math.RND.pick(['orb1', 'orb2', 'orb3']);
-            // Play via the cache (no need to pre-add), passing volume
-            try {
-                this.sound.play(key, { volume: this.sfxVolume } as any);
-            } catch {}
-            this.scheduleNextOrbSound();
-        });
-    }
 
     private displayEspionageText(message: string) {
         // Remove existing espionage text if any
@@ -617,6 +585,14 @@ export class MascotPlayground extends Scene {
             
             // Add click handler to show flight details
             airplane.on('pointerdown', () => {
+                // Play the "where that just go" sound when clicking on airplane
+                try {
+                    this.sound.play('where-that-go', { volume: this.sfxVolume });
+                    console.log('🎵 Playing "where that just go" sound for airplane click!');
+                } catch (error) {
+                    console.warn('Could not play where-that-go sound:', error);
+                }
+                
                 this.showFlightDetails(flightInfo);
             });
 
