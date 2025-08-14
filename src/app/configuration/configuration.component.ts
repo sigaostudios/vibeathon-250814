@@ -13,7 +13,7 @@ export interface GameConfig {
     playerName: string;
     githubToken: string;
     groqApiKey: string;
-    zipCode?: string;
+    zipCode: string;
 }
 
 @Component({
@@ -32,7 +32,8 @@ export class ConfigurationComponent implements OnInit {
         difficulty: 'medium',
         playerName: 'Player',
         githubToken: '',
-        groqApiKey: ''
+        groqApiKey: '',
+        zipCode: ''
     };
 
     savedMessage = '';
@@ -68,6 +69,7 @@ export class ConfigurationComponent implements OnInit {
         this.savedMessage = 'Configuration saved successfully!';
 
         EventBus.emit('config-saved', this.config);
+        EventBus.emit('zipcode-updated', this.config.zipCode);
 
         setTimeout(() => {
             this.savedMessage = '';
@@ -83,7 +85,8 @@ export class ConfigurationComponent implements OnInit {
             difficulty: 'medium',
             playerName: 'Player',
             githubToken: '',
-            groqApiKey: ''
+            groqApiKey: '',
+            zipCode: ''
         };
         this.saveConfiguration();
     }
