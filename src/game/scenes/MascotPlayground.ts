@@ -24,6 +24,8 @@ export class MascotPlayground extends Scene {
     private activeFlightCount = 0;
     private movieDialogSystem!: MovieDialogSystem;
     private brandonSpeechBubble?: Phaser.GameObjects.Container;
+    private isSpyMode = false;
+    private originalTexture = 'amish-brandon';
 
     constructor() {
         super('MascotPlayground');
@@ -139,6 +141,8 @@ export class MascotPlayground extends Scene {
         EventBus.on('brandon-disapprove-movie', this.setBrandonDisapproval, this);
         EventBus.on('brandon-show-money', this.setBrandonMoney, this);
         EventBus.on('brandon-reset-expression', this.setBrandonNeutral, this);
+        EventBus.on('enter-spy-mode', this.enterSpyMode, this);
+        EventBus.on('exit-spy-mode', this.exitSpyMode, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -167,6 +171,8 @@ export class MascotPlayground extends Scene {
             EventBus.off('brandon-disapprove-movie', this.setBrandonDisapproval, this);
             EventBus.off('brandon-show-money', this.setBrandonMoney, this);
             EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
+            EventBus.off('enter-spy-mode', this.enterSpyMode, this);
+            EventBus.off('exit-spy-mode', this.exitSpyMode, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
             
@@ -188,6 +194,8 @@ export class MascotPlayground extends Scene {
             EventBus.off('brandon-disapprove-movie', this.setBrandonDisapproval, this);
             EventBus.off('brandon-show-money', this.setBrandonMoney, this);
             EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
+            EventBus.off('enter-spy-mode', this.enterSpyMode, this);
+            EventBus.off('exit-spy-mode', this.exitSpyMode, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
             
@@ -455,35 +463,21 @@ export class MascotPlayground extends Scene {
         scrollUpArrow.setAlpha(0.3);
         scrollDownArrow.setAlpha(maxScroll > 0 ? 1 : 0.3);
 
-        // Add all elements to main container (mask shape should NOT be added to avoid double positioning)
-        mainContainer.add([paperBg, headerBorder, headerText, scrollableContainer, footerText, scrollUpArrow, scrollDownArrow]);
-        mainContainer.setDepth(200);
+        // Create close button
+        const closeButton = this.add.text(docWidth / 2 - 20, -docHeight / 2 + 10, "✖", {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#CC0000',
+            stroke: '#8B4513',
+            strokeThickness: 1
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        // Store references for cleanup
-        this.espionageContainer = mainContainer;
-        this.espionageText = documentText;
-        
-        // Store mask reference for proper cleanup
-        (mainContainer as any).maskShape = maskShape;
-
-        // Add a dramatic fade-in with slight rotation
-        mainContainer.setAlpha(0);
-        mainContainer.setRotation(0.1);
-        mainContainer.setScale(0.8);
-        
-        this.tweens.add({
-            targets: mainContainer,
-            alpha: 1,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 800,
-            ease: 'Back.easeOut'
-        });
-
-        // Auto-hide after 20 seconds (longer for document reading)
-        this.time.delayedCall(20000, () => {
+        // Close button functionality
+        closeButton.on('pointerdown', () => {
             if (this.espionageContainer) {
+                // Exit spy mode when closing espionage results
+                this.exitSpyMode();
+                
                 this.tweens.add({
                     targets: this.espionageContainer,
                     alpha: 0,
@@ -506,6 +500,43 @@ export class MascotPlayground extends Scene {
                     }
                 });
             }
+        });
+
+        // Close button hover effects
+        closeButton.on('pointerover', () => {
+            closeButton.setScale(1.2);
+            closeButton.setColor('#FF0000');
+        });
+        
+        closeButton.on('pointerout', () => {
+            closeButton.setScale(1);
+            closeButton.setColor('#CC0000');
+        });
+
+        // Add all elements to main container (mask shape should NOT be added to avoid double positioning)
+        mainContainer.add([paperBg, headerBorder, headerText, scrollableContainer, footerText, scrollUpArrow, scrollDownArrow, closeButton]);
+        mainContainer.setDepth(200);
+
+        // Store references for cleanup
+        this.espionageContainer = mainContainer;
+        this.espionageText = documentText;
+        
+        // Store mask reference for proper cleanup
+        (mainContainer as any).maskShape = maskShape;
+
+        // Add a dramatic fade-in with slight rotation
+        mainContainer.setAlpha(0);
+        mainContainer.setRotation(0.1);
+        mainContainer.setScale(0.8);
+        
+        this.tweens.add({
+            targets: mainContainer,
+            alpha: 1,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 800,
+            ease: 'Back.easeOut'
         });
     }
 
@@ -835,5 +866,23 @@ export class MascotPlayground extends Scene {
         // Switch back to neutral/money texture
         this.mascot.setTexture('amish-brandon-money');
         console.log('Brandon back to neutral expression');
+    }
+
+    private enterSpyMode() {
+        if (!this.isSpyMode && this.mascot) {
+            // Store the current texture
+            this.originalTexture = this.mascot.texture.key;
+            // Switch to spy texture
+            this.mascot.setTexture('amish-brandon-spy');
+            this.isSpyMode = true;
+        }
+    }
+
+    private exitSpyMode() {
+        if (this.isSpyMode && this.mascot) {
+            // Switch back to original texture
+            this.mascot.setTexture(this.originalTexture);
+            this.isSpyMode = false;
+        }
     }
 }
