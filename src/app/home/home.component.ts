@@ -144,13 +144,14 @@ export class HomeComponent {
         }
     }
 
-    public locationInput: string = '';
+    public cityInput: string = '';
+    public stateInput: string = '';
     public isSettingLocation: boolean = false;
     public locationError: string = '';
 
-    public async setLocationFromInput(): Promise<void> {
-        if (!this.locationInput.trim()) {
-            this.locationError = 'Please enter a city name';
+    public async setLocationFromInputs(): Promise<void> {
+        if (!this.cityInput.trim() || !this.stateInput.trim()) {
+            this.locationError = 'Please enter both city and state';
             return;
         }
 
@@ -158,14 +159,17 @@ export class HomeComponent {
         this.locationError = '';
 
         try {
-            const success = await this.weatherService.setLocationByName(this.locationInput.trim());
+            // Combine city and state with comma for the weather service
+            const locationString = `${this.cityInput.trim()}, ${this.stateInput.trim()}`;
+            const success = await this.weatherService.setLocationByName(locationString);
             
             if (success) {
-                this.locationInput = '';
+                this.cityInput = '';
+                this.stateInput = '';
                 this.locationError = '';
                 console.log('Location set successfully');
             } else {
-                this.locationError = 'Location not found. Try "City, State" format.';
+                this.locationError = 'Location not found. Please check city and state spelling.';
             }
         } catch (error) {
             this.locationError = 'Failed to set location. Please try again.';

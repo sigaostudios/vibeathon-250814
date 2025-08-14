@@ -53,16 +53,11 @@ export class WeatherService {
   }
 
   private loadSavedLocation() {
-    const saved = localStorage.getItem('manualLocation');
-    if (saved) {
-      try {
-        this.manualLocation = JSON.parse(saved);
-        console.log('Loaded saved location:', this.manualLocation?.cityName);
-      } catch (error) {
-        console.warn('Failed to load saved location:', error);
-        localStorage.removeItem('manualLocation');
-      }
-    }
+    // Start fresh - no saved location initially
+    this.manualLocation = null;
+    localStorage.removeItem('manualLocation');
+    localStorage.removeItem('lastWeatherData');
+    localStorage.removeItem('lastWeatherUpdate');
   }
 
   private getLocation(): { coords: GeolocationCoordinates, cityName: string } | null {
@@ -105,9 +100,29 @@ export class WeatherService {
     try {
       console.log(`Looking up coordinates for: ${locationName}`);
       
+      // Parse input to detect if it's "city state" format without comma
+      const originalInputLower = locationName.toLowerCase();
+      let searchQuery = locationName;
+      
+      // If input looks like "city state" format, reformat to "city, state" for better geocoding
+      if (!originalInputLower.includes(',')) {
+        const parts = originalInputLower.split(' ').map(p => p.trim());
+        if (parts.length >= 2) {
+          const lastPart = parts[parts.length - 1];
+          if (lastPart.length === 2 || this.isValidStateName(lastPart)) {
+            // Reformat "hoover al" to "hoover, alabama" for better results
+            const cityPart = parts.slice(0, -1).join(' ');
+            const statePart = this.getFullStateName(lastPart);
+            searchQuery = `${cityPart}, ${statePart}`;
+            console.log(`Reformatted search query: "${searchQuery}"`);
+          }
+        }
+      }
+      
       // Use OpenStreetMap Nominatim for geocoding (free, no API key)
+      // Request multiple results to find the best match
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json&limit=1&addressdetails=1`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&addressdetails=1&countrycodes=us`
       );
       
       if (!response.ok) {
@@ -120,14 +135,76 @@ export class WeatherService {
         throw new Error('Location not found');
       }
       
-      const result = data[0];
+      // Debug: Log all results to see what we're getting
+      console.log('All geocoding results:');
+      data.forEach((result: any, index: number) => {
+        console.log(`Result ${index}:`, {
+          display_name: result.display_name,
+          state: result.address?.state,
+          country: result.address?.country,
+          lat: result.lat,
+          lon: result.lon
+        });
+      });
+      
+      // Find the best match, prioritizing US locations and exact state matches
+      let bestResult = data[0]; // Default to first result
+      const searchInputLower = searchQuery.toLowerCase();
+      let inputState = '';
+      
+      // Parse input for state - handle both "city, state" and "city state" formats
+      if (searchInputLower.includes(',')) {
+        // Format: "city, state"
+        const parts = searchInputLower.split(',').map(p => p.trim());
+        if (parts.length >= 2) {
+          inputState = parts[1];
+        }
+      } else {
+        // Format: "city state" - check if last word is a state abbreviation
+        const parts = searchInputLower.split(' ').map(p => p.trim());
+        if (parts.length >= 2) {
+          const lastPart = parts[parts.length - 1];
+          // Check if last part is a valid state abbreviation (2 letters) or state name
+          if (lastPart.length === 2 || this.isValidStateName(lastPart)) {
+            inputState = lastPart;
+            console.log(`Detected state from input: "${inputState}"`);
+          }
+        }
+      }
+      
+      // If we found a potential state in the input, look for a matching result
+      if (inputState) {
+        console.log(`Looking for results matching state: "${inputState}"`);
+        for (let i = 0; i < data.length; i++) {
+          const result = data[i];
+          const address = result.address;
+          if (address && address.state) {
+            const resultState = address.state.toLowerCase();
+            const resultStateAbbr = this.getStateAbbreviation(address.state);
+            
+            console.log(`Checking result ${i}: state="${address.state}", abbr="${resultStateAbbr}"`);
+            
+            // Check if state matches (full name or abbreviation)
+            if (resultState.includes(inputState) || 
+                resultStateAbbr.toLowerCase() === inputState ||
+                inputState === resultState) {
+              bestResult = result;
+              console.log(`✅ Found better match for state "${inputState}":`, address.state, 'at index', i);
+              break;
+            }
+          }
+        }
+      } else {
+        console.log('No state detected in input, using first result');
+      }
+      
       const coords = {
-        latitude: parseFloat(result.lat),
-        longitude: parseFloat(result.lon)
+        latitude: parseFloat(bestResult.lat),
+        longitude: parseFloat(bestResult.lon)
       };
       
       // Extract a clean city name from the response
-      const address = result.address;
+      const address = bestResult.address;
       let cleanCityName = locationName; // Use input as fallback
       
       if (address) {
@@ -145,6 +222,7 @@ export class WeatherService {
       }
       
       console.log(`Found coordinates for ${cleanCityName}:`, coords);
+      console.log(`Full address:`, address);
       
       // Set the location
       this.setManualLocation(cleanCityName, coords);
@@ -154,6 +232,64 @@ export class WeatherService {
       console.error('Failed to geocode location:', error);
       return false;
     }
+  }
+
+  private getStateAbbreviation(stateName: string): string {
+    const stateMap: { [key: string]: string } = {
+      'alabama': 'al', 'alaska': 'ak', 'arizona': 'az', 'arkansas': 'ar', 'california': 'ca',
+      'colorado': 'co', 'connecticut': 'ct', 'delaware': 'de', 'florida': 'fl', 'georgia': 'ga',
+      'hawaii': 'hi', 'idaho': 'id', 'illinois': 'il', 'indiana': 'in', 'iowa': 'ia',
+      'kansas': 'ks', 'kentucky': 'ky', 'louisiana': 'la', 'maine': 'me', 'maryland': 'md',
+      'massachusetts': 'ma', 'michigan': 'mi', 'minnesota': 'mn', 'mississippi': 'ms', 'missouri': 'mo',
+      'montana': 'mt', 'nebraska': 'ne', 'nevada': 'nv', 'new hampshire': 'nh', 'new jersey': 'nj',
+      'new mexico': 'nm', 'new york': 'ny', 'north carolina': 'nc', 'north dakota': 'nd', 'ohio': 'oh',
+      'oklahoma': 'ok', 'oregon': 'or', 'pennsylvania': 'pa', 'rhode island': 'ri', 'south carolina': 'sc',
+      'south dakota': 'sd', 'tennessee': 'tn', 'texas': 'tx', 'utah': 'ut', 'vermont': 'vt',
+      'virginia': 'va', 'washington': 'wa', 'west virginia': 'wv', 'wisconsin': 'wi', 'wyoming': 'wy'
+    };
+    
+    return stateMap[stateName.toLowerCase()] || stateName.toLowerCase();
+  }
+
+  private isValidStateName(input: string): boolean {
+    const stateNames = [
+      'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado', 'connecticut', 
+      'delaware', 'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa',
+      'kansas', 'kentucky', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 
+      'minnesota', 'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 
+      'new jersey', 'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio',
+      'oklahoma', 'oregon', 'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 
+      'tennessee', 'texas', 'utah', 'vermont', 'virginia', 'washington', 'west virginia', 
+      'wisconsin', 'wyoming'
+    ];
+    
+    const stateAbbrs = [
+      'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 'hi', 'id', 'il', 'in', 'ia',
+      'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 'nv', 'nh', 'nj',
+      'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 'sd', 'tn', 'tx', 'ut', 'vt',
+      'va', 'wa', 'wv', 'wi', 'wy'
+    ];
+    
+    const inputLower = input.toLowerCase();
+    return stateNames.includes(inputLower) || stateAbbrs.includes(inputLower);
+  }
+
+  private getFullStateName(input: string): string {
+    const abbrToFullName: { [key: string]: string } = {
+      'al': 'alabama', 'ak': 'alaska', 'az': 'arizona', 'ar': 'arkansas', 'ca': 'california',
+      'co': 'colorado', 'ct': 'connecticut', 'de': 'delaware', 'fl': 'florida', 'ga': 'georgia',
+      'hi': 'hawaii', 'id': 'idaho', 'il': 'illinois', 'in': 'indiana', 'ia': 'iowa',
+      'ks': 'kansas', 'ky': 'kentucky', 'la': 'louisiana', 'me': 'maine', 'md': 'maryland',
+      'ma': 'massachusetts', 'mi': 'michigan', 'mn': 'minnesota', 'ms': 'mississippi', 'mo': 'missouri',
+      'mt': 'montana', 'ne': 'nebraska', 'nv': 'nevada', 'nh': 'new hampshire', 'nj': 'new jersey',
+      'nm': 'new mexico', 'ny': 'new york', 'nc': 'north carolina', 'nd': 'north dakota', 'oh': 'ohio',
+      'ok': 'oklahoma', 'or': 'oregon', 'pa': 'pennsylvania', 'ri': 'rhode island', 'sc': 'south carolina',
+      'sd': 'south dakota', 'tn': 'tennessee', 'tx': 'texas', 'ut': 'utah', 'vt': 'vermont',
+      'va': 'virginia', 'wa': 'washington', 'wv': 'west virginia', 'wi': 'wisconsin', 'wy': 'wyoming'
+    };
+    
+    const inputLower = input.toLowerCase();
+    return abbrToFullName[inputLower] || input;
   }
 
   private parseWeatherResponse(response: any, coords: GeolocationCoordinates, cityName: string): WeatherData {

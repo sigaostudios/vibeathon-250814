@@ -198,3 +198,43 @@
         font-size: 1rem;
     }
 }
+
+/* Location Input Stack Styling */
+.location-input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.input-group label {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.input-group .location-field {
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.25rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+}
+
+.input-group .location-field:focus {
+    outline: none;
+    border-color: #0cc9bd;
+    box-shadow: 0 0 0 2px rgba(12, 201, 189, 0.2);
+}
+
+.input-group .location-field::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}

@@ -154,7 +154,7 @@ export class MascotPlayground extends Scene {
     }
 
     changeScene() {
-        this.scene.start('MainMenu');
+        this.scene.start('WeatherPlayground');
     }
 
     toggleMovement(cb?: ({ x, y }: { x: number; y: number }) => void) {

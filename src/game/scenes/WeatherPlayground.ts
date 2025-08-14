@@ -10,6 +10,7 @@ export class WeatherPlayground extends Scene {
   private titleText!: Phaser.GameObjects.Text;
   private sparkle!: Phaser.GameObjects.Particles.ParticleEmitter;
   private isTransitioning: boolean = false;
+  private lightningTimer?: Phaser.Time.TimerEvent;
   private weatherInfoPanel!: Phaser.GameObjects.Rectangle;
   private locationHeaderText!: Phaser.GameObjects.Text;
   private temperatureText!: Phaser.GameObjects.Text;
@@ -55,7 +56,7 @@ export class WeatherPlayground extends Scene {
   }
 
   private setupUI() {
-    this.titleText = this.add.text(512, 50, '🌍 Weather Playground', {
+    this.titleText = this.add.text(512, 50, 'Weather Room', {
       fontFamily: 'Arial Black', 
       fontSize: 38, 
       color: '#ffffff',
@@ -72,28 +73,27 @@ export class WeatherPlayground extends Scene {
     this.weatherInfoPanel.setDepth(50);
 
     // Location header
-    this.locationHeaderText = this.add.text(150, 220, 'No Location Set', {
+    this.locationHeaderText = this.add.text(150, 220, 'Local Weather Conditions', {
       fontFamily: 'Arial Black',
-      fontSize: 20,
+      fontSize: 18,
       color: '#2c3e50',
-      align: 'center'
+      align: 'center',
+      wordWrap: { width: 260, useAdvancedWrap: true }
     }).setOrigin(0.5).setDepth(60);
 
     // Weather condition
-    this.conditionText = this.add.text(150, 270, '---', {
+    this.conditionText = this.add.text(150, 270, 'Conditions: --', {
       fontFamily: 'Arial',
-      fontSize: 18,
+      fontSize: 16,
       color: '#34495e',
       align: 'center'
     }).setOrigin(0.5).setDepth(60);
 
     // Temperature
-    this.temperatureText = this.add.text(150, 320, '--°F', {
+    this.temperatureText = this.add.text(150, 320, 'Temperature: --°F', {
       fontFamily: 'Arial',
-      fontSize: 28,
+      fontSize: 16,
       color: '#e74c3c',
-      stroke: '#ffffff',
-      strokeThickness: 1,
       align: 'center'
     }).setOrigin(0.5).setDepth(60);
 
@@ -106,7 +106,7 @@ export class WeatherPlayground extends Scene {
     }).setOrigin(0.5).setDepth(60);
 
     // Wind speed
-    this.windText = this.add.text(150, 420, 'Wind: -- km/h', {
+    this.windText = this.add.text(150, 420, 'Wind: -- mph', {
       fontFamily: 'Arial',
       fontSize: 16,
       color: '#7f8c8d',
@@ -144,33 +144,16 @@ export class WeatherPlayground extends Scene {
   }
 
   private requestWeatherData() {
-    this.showLoadingState();
-    
-    // DEBUG: Force stormy weather for testing
-    console.log('DEBUG: Forcing stormy weather condition');
-    setTimeout(() => {
-      const mockStormData = {
-        condition: 'stormy',
-        temperature: 18,
-        humidity: 95,
-        windSpeed: 45,
-        location: 'Test Storm Location',
-        timestamp: new Date(),
-        isRealTime: false
-      };
-      this.handleWeatherUpdate(mockStormData);
-    }, 1000);
-    
-    // Uncomment below for normal weather fetching
+    // Don't automatically request weather data - wait for user to set location
     // EventBus.emit('request-weather-update');
   }
 
   private showLoadingState() {
-    this.titleText.setText('🌍 Detecting your location...');
+    // Keep title as "Local Weather" - don't change it
   }
 
   private showLocationPrompt() {
-    this.titleText.setText('📍 Enable location for real weather!');
+    // Keep title as "Local Weather" - don't change it
     
     // Retry after 5 seconds
     setTimeout(() => {
@@ -179,16 +162,12 @@ export class WeatherPlayground extends Scene {
   }
 
   private showSetLocationPrompt() {
-    this.titleText.setText('📍 Set your location in the panel →');
+    // Keep title as "Local Weather" - don't change it
   }
 
   private handleWeatherUpdate(weatherData: any) {
     console.log('Weather update received:', weatherData);
-    if (!weatherData.isRealTime) {
-      this.titleText.setText(`🌤️ Weather Playground (Cached)`);
-    } else {
-      this.titleText.setText(`🌤️ ${weatherData.location}`);
-    }
+    // Keep title as "Local Weather" - don't change it
     
     // Update weather info panel
     this.updateWeatherInfoPanel(weatherData);
@@ -219,8 +198,9 @@ export class WeatherPlayground extends Scene {
     // Update humidity
     this.humidityText.setText(`Humidity: ${weatherData.humidity}%`);
     
-    // Update wind speed
-    this.windText.setText(`Wind: ${Math.round(weatherData.windSpeed)} km/h`);
+    // Update wind speed (convert from km/h to mph)
+    const windMph = Math.round(weatherData.windSpeed * 0.621371);
+    this.windText.setText(`Wind: ${windMph} mph`);
   }
 
   private handleWeatherError(error: any) {
@@ -229,9 +209,8 @@ export class WeatherPlayground extends Scene {
       this.showSetLocationPrompt();
     } else if (error?.message?.includes('permission')) {
       this.showLocationPrompt();
-    } else {
-      this.titleText.setText('🌤️ Weather Playground (Error)');
     }
+    // Keep title as "Local Weather" - don't change it for errors either
     this.transitionToWeather('sunny');
   }
 
@@ -240,12 +219,16 @@ export class WeatherPlayground extends Scene {
     
     console.log(`Transitioning from ${this.currentWeather} to ${condition}`);
     this.isTransitioning = true;
+    
+    // Stop any existing lightning effects before changing weather
+    this.stopLightningEffects();
+    
     this.currentWeather = condition;
     
     this.updateBackgroundTint(condition);
     this.updateParticleEffects(condition);
     this.updateMascotBehavior(condition);
-    this.updateTitle(condition);
+    // Don't update title - keep it as "Local Weather"
     
     // Reset transition flag after animation completes
     this.time.delayedCall(2500, () => {
@@ -281,23 +264,40 @@ export class WeatherPlayground extends Scene {
     this.tweens.killTweensOf(this.mascot);
     
     const behaviors = {
-      sunny: { scale: 1.1, movement: 'energetic' },
-      rainy: { scale: 0.9, movement: 'gentle' },
-      stormy: { scale: 1.0, movement: 'nervous' },
-      snowy: { scale: 1.0, movement: 'peaceful' },
-      cloudy: { scale: 1.0, movement: 'contemplative' },
-      foggy: { scale: 0.95, movement: 'mysterious' }
+      sunny: { scale: 1.2, movement: 'happy', frame: 0, animate: true },      // Happy - smile frame
+      rainy: { scale: 0.85, movement: 'sad', frame: 4, animate: false },      // Sad - try middle frame (might be neutral)
+      stormy: { scale: 0.8, movement: 'sad', frame: 2, animate: false },      // Very sad - try frame 2 (might be frown)
+      snowy: { scale: 1.0, movement: 'peaceful', frame: 1, animate: true },   // Peaceful - slight smile
+      cloudy: { scale: 1.0, movement: 'contemplative', frame: 3, animate: true }, // Neutral
+      foggy: { scale: 0.95, movement: 'mysterious', frame: 5, animate: false } // Mysterious
     };
     
     const behavior = behaviors[condition as keyof typeof behaviors] || behaviors.sunny;
     
-    // Apply scale
+    console.log(`Mascot behavior for ${condition}:`, behavior);
+    
+    // Control facial expression by stopping animation and setting specific frame
+    if (behavior.animate) {
+      // Resume glow animation for positive moods
+      console.log(`Starting animation for ${condition}`);
+      this.mascot.play('orb-glow');
+    } else {
+      // Stop animation and show specific frame for negative moods
+      console.log(`Stopping animation for ${condition}, setting frame ${behavior.frame}`);
+      this.mascot.stop();
+      this.mascot.setFrame(behavior.frame);
+    }
+    
+    // Apply scale changes
     this.tweens.add({
       targets: this.mascot,
       scale: behavior.scale,
       duration: 2000,
       ease: 'Power2.easeInOut'
     });
+    
+    // Keep mascot at normal color (remove any tint)
+    this.mascot.clearTint();
     
     // Apply movement pattern
     this.applyMovementPattern(behavior.movement);
@@ -307,6 +307,34 @@ export class WeatherPlayground extends Scene {
     const baseY = 420;
     
     switch (pattern) {
+      case 'happy':
+        // Bouncy, excited movement for sunny weather
+        this.tweens.add({
+          targets: this.mascot,
+          y: { value: baseY - 30, duration: 600 },
+          scale: { value: this.mascot.scale + 0.1, duration: 600 },
+          yoyo: true,
+          repeat: -1,
+          ease: 'Bounce.easeOut'
+        });
+        // Frequent sparkles for happiness
+        this.scheduleSparkles(1500, 3000);
+        break;
+        
+      case 'sad':
+        // Droopy, slow movement for rainy weather
+        this.tweens.add({
+          targets: this.mascot,
+          y: { value: baseY + 10, duration: 3000 }, // Lower position
+          scale: { value: this.mascot.scale - 0.05, duration: 2000 }, // Slightly smaller
+          alpha: { value: 0.8, duration: 2500 }, // Slightly transparent
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        // No sparkles for sadness
+        break;
+        
       case 'energetic':
         this.tweens.add({
           targets: this.mascot,
@@ -341,7 +369,7 @@ export class WeatherPlayground extends Scene {
           repeat: -1,
           ease: 'Back.easeInOut'
         });
-        this.scheduleSparkles(1000, 2500);
+        // No sparkles for stormy/nervous weather
         break;
         
       case 'peaceful':
@@ -409,7 +437,7 @@ export class WeatherPlayground extends Scene {
   }
 
   changeScene() {
-    this.scene.start('MascotPlayground');
+    this.scene.start('MainMenu');
   }
 
   private createWeatherGraphics() {
@@ -546,8 +574,16 @@ export class WeatherPlayground extends Scene {
   }
 
   private createLightningEffects() {
+    console.log('Starting lightning effects for stormy weather');
+    
     // Create realistic lightning strikes
     const createLightningStrike = () => {
+      // Only create lightning if we're still in stormy weather
+      if (this.currentWeather !== 'stormy') {
+        console.log('Weather changed, stopping lightning');
+        return;
+      }
+      
       console.log('Lightning strike triggered!'); // Debug log
       
       // Position lightning to start from top-left corner
@@ -577,6 +613,9 @@ export class WeatherPlayground extends Scene {
       
       // Phase 2: Longer pause, then intense flash
       this.time.delayedCall(200, () => {
+        // Check again if still stormy before flashing
+        if (this.currentWeather !== 'stormy') return;
+        
         // Bright flash of the lightning bolt - redraw with brighter color
         lightningBolt.clear();
         lightningBolt.lineStyle(6, 0xffffff, 1.0); // Thicker pure white line
@@ -609,14 +648,24 @@ export class WeatherPlayground extends Scene {
         });
       });
       
-      // Schedule next lightning flash (10 times per minute = every 6 seconds average)
-      const nextFlash = Phaser.Math.Between(4000, 8000); // 4-8 seconds between flashes
-      this.time.delayedCall(nextFlash, createLightningStrike);
+      // Schedule next lightning flash only if still stormy
+      if (this.currentWeather === 'stormy') {
+        const nextFlash = Phaser.Math.Between(4000, 8000); // 4-8 seconds between flashes
+        this.lightningTimer = this.time.delayedCall(nextFlash, createLightningStrike);
+      }
     };
     
     // Start the lightning sequence
     const firstFlash = Phaser.Math.Between(2000, 6000);
-    this.time.delayedCall(firstFlash, createLightningStrike);
+    this.lightningTimer = this.time.delayedCall(firstFlash, createLightningStrike);
+  }
+
+  private stopLightningEffects() {
+    if (this.lightningTimer) {
+      console.log('Stopping lightning effects');
+      this.lightningTimer.destroy();
+      this.lightningTimer = undefined;
+    }
   }
 
 }

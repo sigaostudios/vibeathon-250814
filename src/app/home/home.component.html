@@ -38,20 +38,35 @@
         <!-- Location Selector - Only show in Weather Scene -->
         <div class="location-selector" *ngIf="isWeatherScene">
             <h4>Set Location</h4>
-            <div class="current-location">{{ getCurrentLocationName() }}</div>
-            <div class="location-input">
-                <input type="text" 
-                       [(ngModel)]="locationInput"
-                       placeholder="Enter city, state (e.g., Austin, TX)"
-                       (keyup.enter)="setLocationFromInput()"
-                       [disabled]="isSettingLocation"
-                       class="location-field">
-                <button (click)="setLocationFromInput()" 
-                        [disabled]="isSettingLocation || !locationInput.trim()"
+            
+            <div class="location-input-stack">
+                <div class="input-group">
+                    <label>City</label>
+                    <input type="text" 
+                           [(ngModel)]="cityInput"
+                           placeholder="e.g., Hoover"
+                           (keyup.enter)="setLocationFromInputs()"
+                           [disabled]="isSettingLocation"
+                           class="location-field">
+                </div>
+                
+                <div class="input-group">
+                    <label>State</label>
+                    <input type="text" 
+                           [(ngModel)]="stateInput"
+                           placeholder="e.g., AL"
+                           (keyup.enter)="setLocationFromInputs()"
+                           [disabled]="isSettingLocation"
+                           class="location-field">
+                </div>
+                
+                <button (click)="setLocationFromInputs()" 
+                        [disabled]="isSettingLocation || !cityInput.trim() || !stateInput.trim()"
                         class="btn btn-location">
-                    {{ isSettingLocation ? 'Setting...' : 'Set' }}
+                    {{ isSettingLocation ? 'Setting...' : 'Set Location' }}
                 </button>
             </div>
+            
             <div class="location-error" *ngIf="locationError">{{ locationError }}</div>
         </div>
 
