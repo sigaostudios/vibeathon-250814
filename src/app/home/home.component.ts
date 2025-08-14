@@ -115,6 +115,9 @@ export class HomeComponent implements OnDestroy {
         // Enter spy mode immediately when espionage starts
         EventBus.emit('enter-spy-mode');
         
+        // Play Pink Panther theme immediately when spy mode starts
+        EventBus.emit('play-spy-music');
+        
         // Show Brandon's speech bubble while fetching
         EventBus.emit('show-brandon-speech', 'Engaging in super top secret espionage');
         

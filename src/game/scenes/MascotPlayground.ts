@@ -174,6 +174,7 @@ export class MascotPlayground extends Scene {
         EventBus.on('brandon-reset-expression', this.setBrandonNeutral, this);
         EventBus.on('enter-spy-mode', this.enterSpyMode, this);
         EventBus.on('exit-spy-mode', this.exitSpyMode, this);
+        EventBus.on('play-spy-music', this.playSpyMusic, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -204,6 +205,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
             EventBus.off('enter-spy-mode', this.enterSpyMode, this);
             EventBus.off('exit-spy-mode', this.exitSpyMode, this);
+            EventBus.off('play-spy-music', this.playSpyMusic, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
             
@@ -227,6 +229,7 @@ export class MascotPlayground extends Scene {
             EventBus.off('brandon-reset-expression', this.setBrandonNeutral, this);
             EventBus.off('enter-spy-mode', this.enterSpyMode, this);
             EventBus.off('exit-spy-mode', this.exitSpyMode, this);
+            EventBus.off('play-spy-music', this.playSpyMusic, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
             
@@ -906,9 +909,20 @@ export class MascotPlayground extends Scene {
     }
 
     private enterSpyMode() {
+        console.log('🕵️ enterSpyMode() called - isSpyMode:', this.isSpyMode);
         if (!this.isSpyMode && this.mascot) {
             // Store the current texture
             this.originalTexture = this.mascot.texture.key;
+            console.log('🔄 Stored original texture:', this.originalTexture);
+            
+            // Play Pink Panther theme music IMMEDIATELY when entering spy mode
+            try {
+                console.log('🎵 About to play Pink Panther theme - sound cache has pinkpanther:', this.cache.audio.has('pinkpanther'));
+                this.sound.play('pinkpanther', { volume: this.sfxVolume });
+                console.log('🎵 SUCCESS: Pink Panther theme started playing for spy mode!');
+            } catch (error) {
+                console.warn('❌ FAILED: Could not play pinkpanther sound:', error);
+            }
             
             // Randomly choose between the two spy textures
             const spyTextures = ['amish-brandon-spy', 'amish-brandon-spy-2'];
@@ -918,7 +932,9 @@ export class MascotPlayground extends Scene {
             this.mascot.setTexture(randomSpyTexture);
             this.isSpyMode = true;
             
-            console.log(`Entered spy mode with texture: ${randomSpyTexture}`);
+            console.log(`✅ Entered spy mode with texture: ${randomSpyTexture}`);
+        } else {
+            console.log('⚠️ enterSpyMode() skipped - already in spy mode or no mascot');
         }
     }
 
@@ -927,6 +943,17 @@ export class MascotPlayground extends Scene {
             // Switch back to original texture
             this.mascot.setTexture(this.originalTexture);
             this.isSpyMode = false;
+        }
+    }
+
+    private playSpyMusic() {
+        // Play Pink Panther theme music immediately when spy music is requested
+        try {
+            console.log('🎵 IMMEDIATE SPY MUSIC: About to play Pink Panther theme - sound cache has pinkpanther:', this.cache.audio.has('pinkpanther'));
+            this.sound.play('pinkpanther', { volume: this.sfxVolume });
+            console.log('🎵 IMMEDIATE SPY MUSIC: Pink Panther theme started playing!');
+        } catch (error) {
+            console.warn('❌ IMMEDIATE SPY MUSIC FAILED: Could not play pinkpanther sound:', error);
         }
     }
 
