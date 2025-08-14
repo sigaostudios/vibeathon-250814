@@ -1,6 +1,6 @@
 import { Injectable, Injector } from '@angular/core';
-import { Observable, of, from, forkJoin } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { Observable, of, from } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 interface NewsResponse {
     introduction?: string;
@@ -120,7 +120,7 @@ export class NewsAgentService {
 
     private async makeLLMRequest(prompt: string): Promise<string> {
         console.log('🟡 NewsAgentService: Making LLM request to /api/llm');
-        console.log('🟡 Prompt being sent:', prompt);
+        console.log('🟡 Prompt being sent:', prompt.substring(0, 200) + '...');
         try {
             console.log('🟡 About to fetch /api/llm...');
             const response = await fetch('/api/llm', {
@@ -135,16 +135,17 @@ export class NewsAgentService {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('NewsAgentService: LLM response data:', data);
+                console.log('🟢 NewsAgentService: LLM response data:', data);
+                console.log('🟢 NewsAgentService: Response text:', data.response);
                 return data.response || this.getFallbackResponse(prompt);
             } else {
-                console.warn('NewsAgentService: LLM response not ok:', response.status, response.statusText);
+                console.warn('⚠️ NewsAgentService: LLM response not ok:', response.status, response.statusText);
             }
         } catch (error) {
-            console.warn('NewsAgentService: LLM endpoint error:', error);
+            console.warn('❌ NewsAgentService: LLM endpoint error:', error);
         }
         
-        console.log('NewsAgentService: Using fallback response');
+        console.log('⚠️ NewsAgentService: Using fallback response');
         return this.getFallbackResponse(prompt);
     }
 
@@ -172,27 +173,31 @@ User asked: "${query}"
 
 Please provide a witty, informative response about this topic. Include some actual information if possible, but make it entertaining with your signature sarcastic commentary. Keep it conversational and engaging, around 2-3 sentences.`;
 
-        console.log('🎤 NewsAgentService: Calling Claude with prompt:', claudePrompt);
+        console.log('🎤 NewsAgentService: Calling Claude with prompt');
         
         return this.callLLM(claudePrompt).pipe(
             map(claudeResponse => {
                 console.log('🎤 NewsAgentService: Got Claude response:', claudeResponse);
+                console.log('🎤 NewsAgentService: Response length:', claudeResponse?.length);
+                
+                // Make sure we have a valid response
+                const responseText = claudeResponse || `Let me check my sources about "${query}"... Actually, my teleprompter just went blank. Classic Tuesday!`;
                 
                 const response: NewsResponse = {
                     introduction: `Great question! Let me break this down for you:`,
                     stories: [{
                         headline: `Max Sterling Responds`,
-                        content: claudeResponse,
+                        content: responseText,
                         commentary: ""
                     }],
                     signoff: "That's your answer straight from the Sigao News desk!"
                 };
                 
-                console.log('🎤 NewsAgentService: Final formatted response:', response);
+                console.log('🎤 NewsAgentService: Final formatted response:', JSON.stringify(response));
                 return response;
             }),
             catchError(error => {
-                console.error('🎤 NewsAgentService: Error in processRequest:', error);
+                console.error('❌ NewsAgentService: Error in processRequest:', error);
                 return of({
                     introduction: "Technical difficulties!",
                     stories: [{
@@ -317,44 +322,39 @@ Please provide a witty, informative response about this topic. Include some actu
         return of(this.getMockNews(intent.category));
     }
 
-    private formatNewsResponseWithLLM(data: any[], intent: any, _originalQuery: string): Observable<NewsResponse> {
-        const response: NewsResponse = {
-            stories: []
-        };
-        
-        // Generate LLM-powered greeting
-        const greetingPrompt = `Create a witty, SNL Weekend Update style news anchor greeting for ${this.anchorName} from ${this.networkName}. Make it funny and engaging, about 1-2 sentences.`;
-        
-        return this.callLLM(greetingPrompt).pipe(
-            switchMap(greeting => {
-                response.introduction = greeting;
+    // No longer needed - using direct LLM calls instead
+    private _formatNewsResponseWithLLM(data: any[], intent: any, originalQuery: string): Observable<NewsResponse> {
+        // Generate entire news response with Claude in one call for better coherence
+        const fullPrompt = `You are ${this.anchorName}, a witty news anchor from ${this.networkName} in the style of SNL Weekend Update.
+
+User query: "${originalQuery}"
+Category: ${intent.category}
+
+Provide a complete news response with:
+1. Opening greeting (witty, 1-2 sentences)
+2. Main content addressing the query with your signature sarcastic commentary (2-3 sentences)
+3. A memorable signoff (1 sentence)
+
+Be entertaining, informative, and full of personality. Keep it conversational and funny.`;
+
+        return this.callLLM(fullPrompt).pipe(
+            map(claudeResponse => {
+                console.log('🎯 NewsAgentService: Full LLM response:', claudeResponse);
                 
-                // Format stories with LLM-generated commentary
-                if (Array.isArray(data) && data.length > 0) {
-                    return this.formatStoriesWithLLMCommentary(data, intent.category).pipe(
-                        map(stories => {
-                            response.stories = stories;
-                            return response;
-                        })
-                    );
-                } else {
-                    response.stories = [{
-                        headline: "Breaking News: No News",
-                        content: "In an unprecedented turn of events, nothing happened today. Experts are baffled.",
-                        commentary: "And that's why I drink coffee, folks."
-                    }];
-                    return of(response);
-                }
-            }),
-            switchMap(resp => {
-                // Generate LLM-powered signoff
-                const signoffPrompt = `Create a witty, SNL Weekend Update style news anchor signoff for ${this.anchorName} from ${this.networkName}. Make it funny and memorable, about 1 sentence.`;
-                return this.callLLM(signoffPrompt).pipe(
-                    map(signoff => {
-                        resp.signoff = signoff;
-                        return resp;
-                    })
-                );
+                // Split response into sections
+                const paragraphs = claudeResponse.split('\n').filter(p => p.trim());
+                
+                const response: NewsResponse = {
+                    introduction: paragraphs[0] || `Good evening, I'm ${this.anchorName} with ${this.networkName}.`,
+                    stories: [{
+                        headline: `${this.anchorName} Reports`,
+                        content: paragraphs.slice(1, -1).join(' ') || claudeResponse,
+                        commentary: ''
+                    }],
+                    signoff: paragraphs[paragraphs.length - 1] || `That's all from ${this.networkName}!`
+                };
+                
+                return response;
             }),
             catchError(() => {
                 // Fallback to static response if LLM fails
@@ -363,38 +363,11 @@ Please provide a witty, informative response about this topic. Include some actu
         );
     }
 
-    private formatStoriesWithLLMCommentary(data: any[], category: string): Observable<Array<{headline: string; content: string; commentary?: string}>> {
-        const stories = data.slice(0, 3);
-        
-        // Generate commentary for each story using LLM
-        const storyObservables = stories.map((item) => {
-            let headline: string;
-            let content: string;
-            
-            // Handle different data formats (news articles vs sports scores)
-            if (item.hasOwnProperty('homeTeam')) {
-                headline = `${item.homeTeam} vs ${item.awayTeam}`;
-                content = `The score is ${item.score}. ${item.status || 'Game in progress'}.`;
-            } else {
-                headline = item.title || "Mysterious Headline Missing";
-                content = item.description || "Our sources tell us something happened. What exactly? Your guess is as good as ours.";
-            }
-            
-            // Generate witty commentary for this story
-            const commentaryPrompt = `Create a witty, SNL Weekend Update style comment about this ${category} news story. Make it sarcastic and funny, keep it to 1 sentence: "${headline} - ${content}"`;
-            
-            return this.callLLM(commentaryPrompt).pipe(
-                map(commentary => ({
-                    headline,
-                    content,
-                    commentary: commentary || this.getRandomRemark(category)
-                }))
-            );
-        });
-        
-        // Use forkJoin to wait for all commentaries
-        return forkJoin(storyObservables);
-    }
+    // No longer needed - using direct LLM calls instead
+    /* private _formatStoriesWithLLMCommentary(data: any[], category: string): Observable<Array<{headline: string; content: string; commentary?: string}>> {
+        // Method deprecated - using generateNewscast instead
+        return of([]);
+    } */
 
     private formatNewsResponse(data: any[], intent: any): NewsResponse {
         const response: NewsResponse = {
@@ -518,24 +491,101 @@ Please provide a witty, informative response about this topic. Include some actu
 
     // Generate a full newscast for auto-play mode
     generateNewscast(category: string): Observable<NewsResponse> {
-        const mockNews = this.getMockNews(category);
+        console.log('🎬 NewsAgentService: Generating newscast for category:', category);
         
-        // Use LLM for full newscast generation
-        const intent = { type: 'news', category, specific: `${category} newscast` };
-        return this.formatNewsResponseWithLLM(mockNews, intent, `Generate a ${category} newscast`).pipe(
-            catchError(() => {
-                // Fallback to static content
+        // Create a comprehensive prompt for Claude to generate a full newscast
+        const newsCastPrompt = `You are Max Sterling, a witty news anchor from Sigao News Network in the style of SNL Weekend Update.
+
+Generate a complete ${category} newscast with:
+1. A witty opening greeting (1-2 sentences)
+2. Three current ${category} news stories with your signature sarcastic commentary
+3. A memorable signoff (1 sentence)
+
+Format each story as:
+- Headline: [catchy headline]
+- Content: [2-3 sentences about the story]
+- Commentary: [Your witty take on it, 1 sentence]
+
+Make it entertaining, informative, and full of personality. Include real-world references when possible but keep it light and funny.`;
+
+        return this.callLLM(newsCastPrompt).pipe(
+            map(claudeResponse => {
+                console.log('🎬 NewsAgentService: Got Claude newscast response:', claudeResponse);
+                
+                // Parse the Claude response into our NewsResponse format
+                const lines = claudeResponse.split('\n').filter(line => line.trim());
                 const response: NewsResponse = {
-                    introduction: this.getNewsCastIntro(category),
-                    stories: this.formatNewsStories(mockNews, category),
-                    signoff: this.getSignoff()
+                    introduction: '',
+                    stories: [],
+                    signoff: ''
                 };
-                return of(response);
+                
+                // Extract introduction (first line or two)
+                if (lines.length > 0) {
+                    response.introduction = lines[0];
+                    if (lines[1] && !lines[1].includes('Headline:')) {
+                        response.introduction += ' ' + lines[1];
+                    }
+                }
+                
+                // Parse stories
+                let currentStory: any = {};
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.startsWith('Headline:') || line.includes('Headline:')) {
+                        if (currentStory.headline) {
+                            response.stories.push(currentStory);
+                        }
+                        currentStory = { headline: line.replace(/^.*Headline:\s*/, '').trim() };
+                    } else if (line.startsWith('Content:') || line.includes('Content:')) {
+                        currentStory.content = line.replace(/^.*Content:\s*/, '').trim();
+                    } else if (line.startsWith('Commentary:') || line.includes('Commentary:')) {
+                        currentStory.commentary = line.replace(/^.*Commentary:\s*/, '').trim();
+                    } else if (i === lines.length - 1 || i === lines.length - 2) {
+                        // Last line or two might be the signoff
+                        if (!response.signoff) {
+                            response.signoff = line;
+                        } else {
+                            response.signoff += ' ' + line;
+                        }
+                    }
+                }
+                
+                // Add the last story if exists
+                if (currentStory.headline) {
+                    response.stories.push(currentStory);
+                }
+                
+                // If parsing didn't work well, create a simpler format
+                if (response.stories.length === 0) {
+                    response.stories = [{
+                        headline: `Latest ${category} Update`,
+                        content: claudeResponse,
+                        commentary: ''
+                    }];
+                }
+                
+                console.log('🎬 NewsAgentService: Parsed newscast response:', response);
+                return response;
+            }),
+            catchError(error => {
+                console.error('🎬 NewsAgentService: Error generating newscast:', error);
+                // Emergency fallback with minimal static content
+                return of({
+                    introduction: `Good evening, I'm Max Sterling with Sigao News. Technical difficulties aside, here's what we've got for you.`,
+                    stories: [{
+                        headline: `${category} News Update`,
+                        content: `We're experiencing some technical difficulties getting the latest ${category} news. Our interns are working on it - which means we should have it fixed by next Tuesday.`,
+                        commentary: "And that's why we can't have nice things."
+                    }],
+                    signoff: `That's all for now. I'm Max Sterling, reminding you that even when the tech fails, the news must go on!`
+                });
             })
         );
     }
 
-    private getNewsCastIntro(category: string): string {
+    /* No longer needed - using direct LLM calls instead
+    private _getNewsCastIntro(category: string): string {
         const intros: { [key: string]: string[] } = {
             general: [
                 "Good evening, I'm {{name}} with {{network}}. Tonight's top stories will make you question everything. Or nothing. We're not sure yet.",
@@ -557,5 +607,5 @@ Please provide a witty, informative response about this topic. Include some actu
         
         const categoryIntros = intros[category] || intros['general'];
         return this.replacePlaceholders(this.getRandomItem(categoryIntros));
-    }
+    } */
 }

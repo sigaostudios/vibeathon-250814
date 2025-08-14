@@ -521,15 +521,20 @@ export class NewsScene extends Scene {
     }
 
     private handleUserQuestionResponse = (response: any) => {
-        console.log('NewsScene: Received user question response:', response);
+        console.log('🎯 NewsScene: Received user question response:', response);
+        console.log('🎯 NewsScene: Response type:', typeof response);
+        console.log('🎯 NewsScene: Response keys:', Object.keys(response || {}));
+        console.log('🎯 NewsScene: Stories:', response?.stories);
         
         // Handle the response to a user question
         this.currentNewsResponse = response;
         this.currentStoryIndex = 0;
         
         // Start with introduction
-        if (response.introduction) {
+        if (response && response.introduction) {
+            console.log('🎯 NewsScene: Has introduction, starting typewriter for:', response.introduction);
             this.typewriterEffect(response.introduction, () => {
+                console.log('🎯 NewsScene: Introduction typewriter complete, moving to stories');
                 // Pause before starting stories
                 this.autoReadTimer = this.time.delayedCall(1500, () => {
                     this.readUserQuestionStories();
@@ -539,18 +544,26 @@ export class NewsScene extends Scene {
             // Anchor animation for user response
             this.animateAnchor('greeting');
         } else {
+            console.log('🎯 NewsScene: No introduction, going straight to stories');
             // If no introduction, go straight to stories
             this.readUserQuestionStories();
         }
     }
 
     private readUserQuestionStories() {
+        console.log('🎯 NewsScene: readUserQuestionStories called');
+        console.log('🎯 NewsScene: currentNewsResponse:', this.currentNewsResponse);
+        console.log('🎯 NewsScene: stories array:', this.currentNewsResponse?.stories);
+        console.log('🎯 NewsScene: currentStoryIndex:', this.currentStoryIndex);
+        
         if (!this.currentNewsResponse || !this.currentNewsResponse.stories) {
+            console.log('🎯 NewsScene: No response or stories, showing ready message');
             this.showReadyForQuestionsMessage();
             return;
         }
 
         if (this.currentStoryIndex >= this.currentNewsResponse.stories.length) {
+            console.log('🎯 NewsScene: All stories read, showing signoff');
             // Done with stories, show signoff and wait for more questions
             if (this.currentNewsResponse.signoff) {
                 this.typewriterEffect(this.currentNewsResponse.signoff, () => {
@@ -564,6 +577,7 @@ export class NewsScene extends Scene {
         }
 
         const story = this.currentNewsResponse.stories[this.currentStoryIndex];
+        console.log('🎯 NewsScene: Current story:', story);
         
         // Format the story with headline and content
         let storyText = `📰 ${story.headline}\n\n${story.content}`;
@@ -573,8 +587,12 @@ export class NewsScene extends Scene {
             storyText += `\n\n${story.commentary}`;
         }
         
+        console.log('🎯 NewsScene: About to display story text:', storyText);
+        console.log('🎯 NewsScene: Story text length:', storyText.length);
+        
         // Display with typewriter effect
         this.typewriterEffect(storyText, () => {
+            console.log('🎯 NewsScene: Story typewriter complete, moving to next');
             this.currentStoryIndex++;
             
             // Wait before next story
