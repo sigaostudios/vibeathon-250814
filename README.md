@@ -15,6 +15,7 @@ This is a Phaser 3 + Angular 19 starter wired for fast iteration with a small co
 Notes
 - The `dev` and `build` scripts call `log.js` which sends a tiny GET to record usage. Prefer `*-nolog` if offline or avoiding network calls.
 - Production output path: `dist/template-angular/` (configured in `angular.json`).
+- On Linux systems, `npm install` will automatically set up tmux/tmuxinator environment (see Development Environment section below).
 
 ## What You Get Out-of-the-Box
 - Scene flow (Boot → Preloader → MainMenu → MascotPlayground)
@@ -76,6 +77,38 @@ Tip: Use this route to add more mascot parameters (mood thresholds, animation sp
 - You’re expected to connect the mascot to something real (API, webhook, workspace events, etc.).
 - Do not commit secrets. Prefer public APIs, proxy via a lightweight server if needed, or store non-secret toggles via the config route.
 - Provide a demo/test mode in the UI so judges can simulate signals without relying on live events.
+
+## Development Environment (Linux)
+
+### Tmuxinator Setup
+On Linux systems, running `npm install` automatically sets up a tmux development environment with tmuxinator. [Tmuxinator](https://github.com/tmuxinator/tmuxinator) is a tmux session manager that allows you to easily manage complex tmux sessions with pre-configured window and pane layouts.
+
+After installation, start your development environment with:
+```bash
+tmuxinator start vibe
+```
+
+This creates a tmux session with 4 pre-configured windows:
+
+1. **servers-core** 🫘🫘 — Runs the Angular development server (`npm run dev`)
+2. **ai** 📎 — Split pane with:
+   - Claude Code for AI-assisted development
+   - Scratchpad for notes and temporary code snippets
+3. **stats** 📊 — Development monitoring with:
+   - Claude Code usage statistics (`npx ccusage@latest blocks --live`)
+   - System resource monitoring (`htop`)
+4. **terminal** 🖥 — General purpose terminal for git, npm, and other commands
+
+The tmux configuration includes:
+- Mouse support for easy pane navigation and resizing
+- Vi-mode keybindings for familiar navigation
+- Quick pane switching with Alt+Arrow keys
+- Custom color scheme matching the Vibeathon theme
+- Pane synchronization for running commands across multiple panes
+
+Configuration files are located in `tools/tmux/`:
+- `.tmux.conf` — Main tmux configuration
+- `vibe.yml` — Tmuxinator session template
 
 ## Development Tips
 - Start simple: wire one data source and one visible reaction.
