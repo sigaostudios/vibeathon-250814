@@ -167,15 +167,15 @@ export class HomeComponent implements OnDestroy {
     private analyzeBrandonSentiment(response: string): void {
         const lowerResponse = response.toLowerCase();
         
-        // Check for money-related content first (highest priority)
-        const moneyKeywords = ['money', 'million', 'billion', 'box office', 'gross', '$', 'earned', 'made', 'revenue', 'profit'];
-        let hasMoney = false;
+        // Check for movies that are explicitly about money as a theme (highest priority)
+        const moneyThemeKeywords = ['about money', 'greed', 'wealth', 'fortune', 'treasure', 'rich', 'poor', 'capitalism', 'financial', 'bank heist', 'wall street', 'corporate', 'business', 'cash', 'diamond', 'gold'];
+        let hasMoneyTheme = false;
         let hasHighGross = false;
         
-        moneyKeywords.forEach(word => {
+        moneyThemeKeywords.forEach(word => {
             if (lowerResponse.includes(word)) {
-                console.log(`Found money keyword: "${word}"`);
-                hasMoney = true;
+                console.log(`Found money theme keyword: "${word}"`);
+                hasMoneyTheme = true;
             }
         });
         
@@ -220,14 +220,14 @@ export class HomeComponent implements OnDestroy {
             }
         });
         
-        // If money or high grosses are mentioned, show money Brandon
-        if (hasMoney || hasHighGross) {
+        // If movies are about money themes or have high grosses, show money Brandon
+        if (hasMoneyTheme || hasHighGross) {
             console.log('💰 IMAGE SELECTION: AmishBrandonMoney.png');
-            console.log('💰 REASON: Money or high grosses detected');
+            console.log('💰 REASON: Money theme or high grosses detected');
             console.log('💰 DETAILS:', {
-                hasMoney: hasMoney,
+                hasMoneyTheme: hasMoneyTheme,
                 hasHighGross: hasHighGross,
-                detectedKeywords: moneyKeywords.filter(word => lowerResponse.includes(word)),
+                detectedKeywords: moneyThemeKeywords.filter(word => lowerResponse.includes(word)),
                 response: response.substring(0, 200) + '...'
             });
             EventBus.emit('brandon-show-money');
