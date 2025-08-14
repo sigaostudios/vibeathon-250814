@@ -1,5 +1,6 @@
-import { Component, viewChild, OnInit, OnDestroy } from '@angular/core';
+import { Component, viewChild, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PhaserGameComponent } from '../phaser-game.component';
@@ -8,10 +9,12 @@ import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
 import { StocksService } from '../stocks.service';
 import { Subscription } from 'rxjs';
+import { WeatherService } from '../services/weather.service';
 
 @Component({
     selector: 'app-home',
     standalone: true,
+    imports: [CommonModule, FormsModule, RouterLink, PhaserGameComponent],
     imports: [CommonModule, FormsModule, RouterLink, PhaserGameComponent],
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
@@ -20,7 +23,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     public spritePosition = { x: 0, y: 0 };
     public canToggleMovement = false;
     public canAddSprite = false;
-    private currentSceneKey: string = '';
+    public currentSceneKey: string = '';
     // Movement state tracking per scene
     private menuMoving = false;
     private gameMoving = false;
@@ -29,6 +32,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     public stockChatActive = false;
 
     public statusLabel = '—';
+    
+    // Weather properties
+    public currentWeather: string = '';
+    public weatherLocation: string = '';
+    public canSwitchToWeather = false;
+    public isWeatherScene = false;
+    private weatherService = inject(WeatherService);
 
     // Get the PhaserGame component instance
     phaserRef = viewChild.required(PhaserGameComponent);
@@ -40,8 +50,14 @@ export class HomeComponent implements OnInit, OnDestroy {
         // Enable movement in MainMenu (logo tween) and MascotPlayground (mascot tween)
         this.canToggleMovement = this.currentSceneKey === 'MainMenu' || this.currentSceneKey === 'MascotPlayground';
 
-        // Only allow adding sprites in the MascotPlayground scene
-        this.canAddSprite = this.currentSceneKey === 'MascotPlayground';
+            // Only allow adding sprites in the MascotPlayground scene
+            this.canAddSprite = this.currentSceneKey === 'MascotPlayground';
+
+            // Enable weather scene switching from any scene
+            this.canSwitchToWeather = true;
+
+            // Track if we're in the weather scene
+            this.isWeatherScene = this.currentSceneKey === 'WeatherPlayground';
 
         // Reset movement indicators when the scene changes
         if (this.currentSceneKey === 'MainMenu') {
@@ -56,6 +72,17 @@ export class HomeComponent implements OnInit, OnDestroy {
     constructor(private stocksService: StocksService) {
         // Track the active scene and enable/disable controls accordingly
         EventBus.on('current-scene-ready', this.sceneReadyHandler);
+        EventBus.on('weather-data-received', (weatherData: any) => {
+            this.currentWeather = weatherData.condition;
+            this.weatherLocation = weatherData.location;
+            console.log('Weather update in Angular:', weatherData);
+        });
+
+        EventBus.on('weather-error', (error: any) => {
+            this.currentWeather = 'unavailable';
+            this.weatherLocation = 'Unknown';
+            console.warn('Weather error in Angular:', error);
+        });
     }
 
     ngOnInit() {
@@ -170,6 +197,66 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.updateStatus();
     }
 
+
+    public switchToWeatherScene(): void {
+        const current = this.phaserRef().scene;
+        if (current) {
+            current.scene.start('WeatherPlayground');
+        }
+    }
+    
+    public switchToMascotScene(): void {
+        const current = this.phaserRef().scene;
+        if (current) {
+            current.scene.start('MascotPlayground');
+        }
+    }
+
+    public switchToMainMenu(): void {
+        const current = this.phaserRef().scene;
+        if (current) {
+            current.scene.start('MainMenu');
+        }
+    }
+
+    public cityInput: string = '';
+    public stateInput: string = '';
+    public isSettingLocation: boolean = false;
+    public locationError: string = '';
+
+    public async setLocationFromInputs(): Promise<void> {
+        if (!this.cityInput.trim() || !this.stateInput.trim()) {
+            this.locationError = 'Please enter both city and state';
+            return;
+        }
+
+        this.isSettingLocation = true;
+        this.locationError = '';
+
+        try {
+            // Combine city and state with comma for the weather service
+            const locationString = `${this.cityInput.trim()}, ${this.stateInput.trim()}`;
+            const success = await this.weatherService.setLocationByName(locationString);
+            
+            if (success) {
+                this.cityInput = '';
+                this.stateInput = '';
+                this.locationError = '';
+                console.log('Location set successfully');
+            } else {
+                this.locationError = 'Location not found. Please check city and state spelling.';
+            }
+        } catch (error) {
+            this.locationError = 'Failed to set location. Please try again.';
+            console.error('Location setting error:', error);
+        }
+
+        this.isSettingLocation = false;
+    }
+
+    public getCurrentLocationName(): string {
+        return this.weatherService.getCurrentLocationName();
+    }
 
     private updateStatus(): void {
         const movementOn = this.currentSceneKey === 'MainMenu' ? this.menuMoving
