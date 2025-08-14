@@ -16,6 +16,9 @@ export class MascotPlayground extends Scene {
     private musicVolume = 0.04; // very soft
     private sfxVolume = 0.35;   // fairly soft by default
     private espionageText?: Phaser.GameObjects.Text;
+    private flightTexts: Phaser.GameObjects.Text[] = [];
+    private airplaneSprites: Phaser.GameObjects.Sprite[] = [];
+    private flightData: Map<Phaser.GameObjects.Sprite, any> = new Map();
 
     constructor() {
         super('MascotPlayground');
@@ -101,6 +104,8 @@ export class MascotPlayground extends Scene {
         EventBus.on('config-loaded', this.applyConfig, this);
         EventBus.on('config-saved', this.applyConfig, this);
         EventBus.on('display-espionage-text', this.displayEspionageText, this);
+        EventBus.on('display-overhead-flights', this.displayOverheadFlights, this);
+        EventBus.on('clear-overhead-flights', this.clearOverheadFlights, this);
         EventBus.on('music-volume-changed', (v: number) => {
             this.musicVolume = Phaser.Math.Clamp(v, 0, 1);
             if (this.music) {
@@ -121,6 +126,8 @@ export class MascotPlayground extends Scene {
             EventBus.off('config-loaded', this.applyConfig, this);
             EventBus.off('config-saved', this.applyConfig, this);
             EventBus.off('display-espionage-text', this.displayEspionageText, this);
+            EventBus.off('display-overhead-flights', this.displayOverheadFlights, this);
+            EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
         });
@@ -129,6 +136,8 @@ export class MascotPlayground extends Scene {
             EventBus.off('config-loaded', this.applyConfig, this);
             EventBus.off('config-saved', this.applyConfig, this);
             EventBus.off('display-espionage-text', this.displayEspionageText, this);
+            EventBus.off('display-overhead-flights', this.displayOverheadFlights, this);
+            EventBus.off('clear-overhead-flights', this.clearOverheadFlights, this);
             EventBus.off('music-volume-changed');
             EventBus.off('toggle-sound');
         });
@@ -254,6 +263,157 @@ export class MascotPlayground extends Scene {
 
         // Auto-hide after 10 seconds
         this.time.delayedCall(10000, () => {
+            if (this.espionageText) {
+                this.tweens.add({
+                    targets: this.espionageText,
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        if (this.espionageText) {
+                            this.espionageText.destroy();
+                            this.espionageText = undefined;
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    private displayOverheadFlights(flightTexts: string[]) {
+        // Clear any existing flight displays
+        this.clearOverheadFlights();
+
+        // Create airplane sprites for each overhead flight
+        flightTexts.forEach((text, index) => {
+            // Parse flight data from the text string
+            const flightInfo = this.parseFlightInfo(text);
+            
+            // Create airplane sprite
+            const startX = -50; // Start off-screen left
+            const endX = this.scale.width + 50; // End off-screen right
+            const y = 100 + (index * 60); // Different altitudes for multiple flights
+            
+            const airplane = this.add.sprite(startX, y, 'airplane');
+            airplane.setScale(1.5);
+            airplane.setDepth(200);
+            airplane.setInteractive({ useHandCursor: true });
+            
+            // Store flight data with the sprite
+            this.flightData.set(airplane, flightInfo);
+            
+            // Add click handler to show flight details
+            airplane.on('pointerdown', () => {
+                this.showFlightDetails(flightInfo);
+            });
+
+            // Add hover effect
+            airplane.on('pointerover', () => {
+                airplane.setTint(0xffff00); // Yellow tint on hover
+                airplane.setScale(1.8);
+            });
+            
+            airplane.on('pointerout', () => {
+                airplane.clearTint();
+                airplane.setScale(1.5);
+            });
+
+            // Animate airplane flying across screen
+            this.tweens.add({
+                targets: airplane,
+                x: endX,
+                duration: 8000 + (index * 1000), // Slightly staggered timing
+                ease: 'Linear',
+                onComplete: () => {
+                    airplane.destroy();
+                    this.flightData.delete(airplane);
+                    const spriteIndex = this.airplaneSprites.indexOf(airplane);
+                    if (spriteIndex > -1) {
+                        this.airplaneSprites.splice(spriteIndex, 1);
+                    }
+                }
+            });
+
+            this.airplaneSprites.push(airplane);
+        });
+    }
+
+    private clearOverheadFlights() {
+        // Remove all existing flight text displays
+        this.flightTexts.forEach(text => {
+            if (text && text.active) {
+                this.tweens.add({
+                    targets: text,
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        text.destroy();
+                    }
+                });
+            }
+        });
+        this.flightTexts = [];
+
+        // Remove all airplane sprites
+        this.airplaneSprites.forEach(airplane => {
+            if (airplane && airplane.active) {
+                this.flightData.delete(airplane);
+                this.tweens.killTweensOf(airplane);
+                airplane.destroy();
+            }
+        });
+        this.airplaneSprites = [];
+    }
+
+    private parseFlightInfo(flightText: string): any {
+        // Parse the flight text: "Flight Overhead: [callsign] | [speed] | [altitude] | From: [country]"
+        const parts = flightText.split('|');
+        const callsignPart = parts[0]?.replace('Flight Overhead: ', '').trim();
+        const speedPart = parts[1]?.trim();
+        const altitudePart = parts[2]?.trim();
+        const countryPart = parts[3]?.replace('From: ', '').trim();
+
+        return {
+            callsign: callsignPart || 'Unknown',
+            speed: speedPart || 'N/A',
+            altitude: altitudePart || 'N/A',
+            country: countryPart || 'Unknown',
+            fullText: flightText
+        };
+    }
+
+    private showFlightDetails(flightInfo: any) {
+        // Remove any existing flight detail display
+        if (this.espionageText) {
+            this.espionageText.destroy();
+        }
+
+        const detailText = `✈️ ${flightInfo.callsign}\n🚀 Speed: ${flightInfo.speed}\n📏 Altitude: ${flightInfo.altitude}\n🌍 From: ${flightInfo.country}`;
+
+        // Create flight detail popup
+        this.espionageText = this.add.text(512, 300, detailText, {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: { x: 20, y: 15 }
+        }).setOrigin(0.5).setDepth(300);
+
+        // Add fade-in effect
+        this.espionageText.setAlpha(0);
+        this.tweens.add({
+            targets: this.espionageText,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // Auto-hide after 5 seconds
+        this.time.delayedCall(5000, () => {
             if (this.espionageText) {
                 this.tweens.add({
                     targets: this.espionageText,

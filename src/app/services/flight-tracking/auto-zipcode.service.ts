@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, firstValueFrom } from 'rxjs';
 import { map, catchError, timeout } from 'rxjs/operators';
 
 export interface LocationResult {
@@ -34,7 +34,7 @@ export class AutoZipCodeService {
 
     try {
       // Fallback to IP-based location
-      const ipResult = await this.getZipCodeFromIP();
+      const ipResult = await firstValueFrom(this.getZipCodeFromIP());
       if (ipResult) {
         return ipResult;
       }
@@ -59,10 +59,7 @@ export class AutoZipCodeService {
             const { latitude, longitude } = position.coords;
             const zipCode = await this.reverseGeocode(latitude, longitude);
             if (zipCode) {
-              resolve({
-                ...zipCode,
-                source: 'gps'
-              });
+              resolve(zipCode);
             } else {
               resolve(null);
             }
@@ -84,33 +81,36 @@ export class AutoZipCodeService {
     });
   }
 
-  private reverseGeocode(lat: number, lon: number): Observable<LocationResult | null> {
+  private async reverseGeocode(lat: number, lon: number): Promise<LocationResult | null> {
     const url = `${this.NOMINATIM_BASE}?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
     
-    return this.http.get<any>(url).pipe(
-      timeout(5000),
-      map(response => {
-        if (!response || !response.address) {
-          return null;
-        }
+    try {
+      const response = await firstValueFrom(this.http.get<any>(url).pipe(
+        timeout(5000),
+        catchError(() => of(null))
+      ));
 
-        const address = response.address;
-        const zipCode = address.postcode || address.postal_code;
-        
-        if (!zipCode || !/^\d{5}$/.test(zipCode)) {
-          return null;
-        }
+      if (!response || !response.address) {
+        return null;
+      }
 
-        return {
-          zipCode: zipCode,
-          city: address.city || address.town || address.village || 'Unknown',
-          state: address.state || address.region || 'Unknown',
-          country: address.country || 'US',
-          source: 'gps' as const
-        };
-      }),
-      catchError(() => of(null))
-    ).toPromise() as Promise<LocationResult | null>;
+      const address = response.address;
+      const zipCode = address.postcode || address.postal_code;
+      
+      if (!zipCode || !/^\d{5}$/.test(zipCode)) {
+        return null;
+      }
+
+      return {
+        zipCode: zipCode,
+        city: address.city || address.town || address.village || 'Unknown',
+        state: address.state || address.region || 'Unknown',
+        country: address.country || 'US',
+        source: 'gps' as const
+      };
+    } catch (error) {
+      return null;
+    }
   }
 
   private getZipCodeFromIP(): Observable<LocationResult | null> {
