@@ -6,6 +6,7 @@ import { MainMenu } from '../../game/scenes/MainMenu';
 import { MascotPlayground } from '../../game/scenes/MascotPlayground';
 import { EventBus } from '../../game/EventBus';
 import { FlightNotificationComponent } from '../services/flight-tracking/flight-notification.component';
+import { BranchSpyService } from '../services/branch-spy.service';
 
 @Component({
     selector: 'app-home',
@@ -28,7 +29,7 @@ export class HomeComponent {
     // Get the PhaserGame component instance
     phaserRef = viewChild.required(PhaserGameComponent);
 
-    constructor() {
+    constructor(private branchSpyService: BranchSpyService) {
         // Track the active scene and enable/disable controls accordingly
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.currentSceneKey = scene.scene.key;
@@ -94,6 +95,13 @@ export class HomeComponent {
             // Delegate sprite creation to the Phaser scene via EventBus
             EventBus.emit('add-sprite');
         }
+    }
+
+    public engageInEspionage(): void {
+        this.branchSpyService.getLatestCommitMessage().subscribe(message => {
+            // Send the commit message to the game scene to display
+            EventBus.emit('display-espionage-text', message);
+        });
     }
 
     private updateStatus(): void {
