@@ -4,7 +4,7 @@
     "description": "Vibeathon: Phaser 3 + Angular project.",
     "scripts": {
         "ng": "ng",
-        "dev": "node -e \"const {exec,spawn}=require('child_process');if(process.platform==='linux'){exec('node log.js dev');spawn('tmuxinator',['start','vibe'],{stdio:'inherit'})}else{exec('node log.js dev & ng serve',{stdio:'inherit'})}\"",
+        "dev": "node -e \"const {exec,spawn}=require('child_process');if(process.platform==='linux'){exec('node log.js dev');spawn('tmuxinator',['start','vibe',process.cwd()],{stdio:'inherit'})}else{exec('node log.js dev & ng serve',{stdio:'inherit'})}\"",
         "build": "node log.js build & ng build --base-href='./'",
         "dev-nolog": "ng serve",
         "build-nolog": "ng build --base-href='./'",

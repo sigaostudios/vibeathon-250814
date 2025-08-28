@@ -1,5 +1,5 @@
 name: vibe
-root: ~/dev/sigaostudios/vibeathon-250814
+root: <%= @args[0] || Dir.pwd %>
 enable_pane_titles: true
 pane_title_position: top
 pane_title_format: '#[fg=#dd2143]#[fg=black,bg=#dd2143] #{pane_title} #[fg=#dd2143,bg=default]#[default]'
